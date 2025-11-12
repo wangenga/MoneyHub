@@ -1,0 +1,34 @@
+{
+  "project_info": {
+    "project_number": "PLACEHOLDER",
+    "project_id": "personal-finance-app-placeholder",
+    "storage_bucket": "personal-finance-app-placeholder.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:PLACEHOLDER:android:PLACEHOLDER",
+        "android_client_info": {
+          "package_name": "com.finance.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "PLACEHOLDER.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "PLACEHOLDER_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
