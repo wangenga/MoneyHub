@@ -59,8 +59,4 @@ This project follows clean architecture principles with the following layers:
 
 ## Project Status
 
-This project is currently in development. Tasks are being implemented incrementally following the implementation plan in `.kiro/specs/personal-finance-app/tasks.md`.
-
-## License
-
-[Add your license here]
+This project is currently in development.
