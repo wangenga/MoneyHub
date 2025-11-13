@@ -5,8 +5,17 @@ import androidx.room.PrimaryKey
 
 /**
  * Room entity for storing transactions in local database
+ * Indexes added for performance optimization on frequently queried columns
  */
-@Entity(tableName = "transactions")
+@Entity(
+    tableName = "transactions",
+    indices = [
+        androidx.room.Index(value = ["userId"]),
+        androidx.room.Index(value = ["date"]),
+        androidx.room.Index(value = ["categoryId"]),
+        androidx.room.Index(value = ["syncStatus"])
+    ]
+)
 data class TransactionEntity(
     @PrimaryKey val id: String,
     val userId: String,

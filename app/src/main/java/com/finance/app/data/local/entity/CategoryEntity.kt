@@ -5,8 +5,14 @@ import androidx.room.PrimaryKey
 
 /**
  * Room entity for storing categories in local database
+ * Index added for performance optimization on userId queries
  */
-@Entity(tableName = "categories")
+@Entity(
+    tableName = "categories",
+    indices = [
+        androidx.room.Index(value = ["userId"])
+    ]
+)
 data class CategoryEntity(
     @PrimaryKey val id: String,
     val userId: String?,
