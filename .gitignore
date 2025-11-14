@@ -61,7 +61,7 @@ captures/
 
 # Google Services (e.g. APIs or Firebase)
 # Uncomment if you want to ignore the actual google-services.json
-# google-services.json
+google-services.json
 
 # Freeline
 freeline.py
