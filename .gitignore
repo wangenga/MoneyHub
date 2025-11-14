@@ -95,3 +95,4 @@ lint-results.xml
 #kiro generated 
 .kiro
 .vscode
+app/google-services*
