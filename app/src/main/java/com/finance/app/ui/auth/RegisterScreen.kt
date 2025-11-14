@@ -47,11 +47,17 @@ fun RegisterScreen(
     val registerState by viewModel.registerState.collectAsState()
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     // Handle register state changes
     LaunchedEffect(registerState) {
         when (val state = registerState) {
             is AuthUiState.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = "Account created successfully! Please login.",
+                    duration = SnackbarDuration.Short
+                )
+                kotlinx.coroutines.delay(1000) // Brief delay to show message
                 onRegisterSuccess()
                 viewModel.resetRegisterState()
             }
@@ -62,8 +68,9 @@ fun RegisterScreen(
         }
     }
     
-    Scaffold(
-        topBar = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
             TopAppBar(
                 title = { Text("Create Account") },
                 navigationIcon = {
@@ -283,6 +290,22 @@ fun RegisterScreen(
                     Text("Login")
                 }
             }
+        }
+    }
+        
+        // Success Snackbar at the top
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp)
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                shape = MaterialTheme.shapes.medium,
+                containerColor = androidx.compose.ui.graphics.Color(0xFF4CAF50), // Green
+                contentColor = androidx.compose.ui.graphics.Color.White
+            )
         }
     }
 }

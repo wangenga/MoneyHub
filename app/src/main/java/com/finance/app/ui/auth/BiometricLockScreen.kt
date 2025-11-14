@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun BiometricLockScreen(
     onAuthenticationSuccess: () -> Unit,
     onAuthenticationError: (String) -> Unit,
+    onFallbackToLogin: () -> Unit = {},
     viewModel: BiometricLockViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

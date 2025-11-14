@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.finance.app.R
 
 /**
  * Login screen with email/password and Google Sign-In options
@@ -43,6 +44,26 @@ fun LoginScreen(
     val loginState by viewModel.loginState.collectAsState()
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // Google Sign-In launcher
+    val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            account?.idToken?.let { idToken ->
+                viewModel.signInWithGoogle(idToken)
+            }
+        } catch (e: com.google.android.gms.common.api.ApiException) {
+            android.widget.Toast.makeText(
+                context,
+                "Google Sign-In failed: ${e.message}",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     
     // Handle login state changes
     LaunchedEffect(loginState) {
@@ -221,7 +242,18 @@ fun LoginScreen(
             
             // Google Sign-In Button
             OutlinedButton(
-                onClick = onGoogleSignIn,
+                onClick = {
+                    // Configure Google Sign-In
+                    val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                        com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                    )
+                        .requestIdToken(context.getString(R.string.default_web_client_id))
+                        .requestEmail()
+                        .build()
+                    
+                    val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                },
                 enabled = loginState !is AuthUiState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()

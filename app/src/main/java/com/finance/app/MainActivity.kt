@@ -33,9 +33,21 @@ class MainActivity : FragmentActivity() {
                     AuthNavigation(
                         onAuthenticationComplete = {
                             // TODO: Navigate to main app screen (will be implemented in later tasks)
+                            android.util.Log.d("MainActivity", "Authentication successful!")
+                            // For now, show a toast to confirm success
+                            android.widget.Toast.makeText(
+                                this,
+                                "Login successful! Main app coming soon...",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
                         },
                         onGoogleSignIn = {
                             // TODO: Implement Google Sign-In flow (requires Google Sign-In setup)
+                            android.widget.Toast.makeText(
+                                this,
+                                "Google Sign-In coming soon...",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
                         }
                     )
                 }

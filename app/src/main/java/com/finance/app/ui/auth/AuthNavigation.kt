@@ -41,7 +41,10 @@ fun AuthNavigation(
         
         composable(AuthRoutes.REGISTER) {
             RegisterScreen(
-                onRegisterSuccess = onAuthenticationComplete,
+                onRegisterSuccess = {
+                    // Navigate back to login after successful registration
+                    navController.popBackStack()
+                },
                 onNavigateBack = {
                     navController.popBackStack()
                 }
