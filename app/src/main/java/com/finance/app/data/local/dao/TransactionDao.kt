@@ -41,4 +41,35 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    // Analytics queries
+    @Query("""
+        SELECT categoryId, SUM(amount) as total 
+        FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'EXPENSE' 
+        AND date BETWEEN :startDate AND :endDate 
+        GROUP BY categoryId
+    """)
+    fun getSpendingByCategory(userId: String, startDate: Long, endDate: Long): Flow<List<com.finance.app.data.local.model.CategorySpending>>
+
+    @Query("""
+        SELECT SUM(amount) 
+        FROM transactions 
+        WHERE userId = :userId 
+        AND type = :type 
+        AND date BETWEEN :startDate AND :endDate
+    """)
+    fun getTotalByType(userId: String, type: String, startDate: Long, endDate: Long): Flow<Double?>
+
+    @Query("""
+        SELECT date, SUM(amount) as total 
+        FROM transactions 
+        WHERE userId = :userId 
+        AND type = 'EXPENSE' 
+        AND date BETWEEN :startDate AND :endDate 
+        GROUP BY date 
+        ORDER BY date ASC
+    """)
+    fun getSpendingTrend(userId: String, startDate: Long, endDate: Long): Flow<List<com.finance.app.data.local.model.DailySpending>>
 }

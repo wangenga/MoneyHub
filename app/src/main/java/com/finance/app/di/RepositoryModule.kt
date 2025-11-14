@@ -1,8 +1,10 @@
 package com.finance.app.di
 
+import com.finance.app.data.repository.AnalyticsRepositoryImpl
 import com.finance.app.data.repository.AuthRepositoryImpl
 import com.finance.app.data.repository.CategoryRepositoryImpl
 import com.finance.app.data.repository.TransactionRepositoryImpl
+import com.finance.app.domain.repository.AnalyticsRepository
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.domain.repository.TransactionRepository
@@ -36,4 +38,10 @@ abstract class RepositoryModule {
     abstract fun bindTransactionRepository(
         transactionRepositoryImpl: TransactionRepositoryImpl
     ): TransactionRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindAnalyticsRepository(
+        analyticsRepositoryImpl: AnalyticsRepositoryImpl
+    ): AnalyticsRepository
 }
