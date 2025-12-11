@@ -5,6 +5,7 @@ import com.finance.app.data.mapper.toDomain
 import com.finance.app.data.mapper.toEntity
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.repository.CategoryRepository
+import com.finance.app.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -14,7 +15,8 @@ import javax.inject.Inject
  * Implementation of CategoryRepository using Room database
  */
 class CategoryRepositoryImpl @Inject constructor(
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val syncScheduler: SyncScheduler
 ) : CategoryRepository {
 
     override fun getAllCategories(): Flow<List<Category>> {
@@ -32,6 +34,12 @@ class CategoryRepositoryImpl @Inject constructor(
     override suspend fun insertCategory(category: Category): Result<Unit> {
         return try {
             categoryDao.insert(category.toEntity())
+            
+            // Schedule post-operation sync for custom categories
+            if (!category.isDefault) {
+                syncScheduler.schedulePostOperationSync()
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -41,6 +49,12 @@ class CategoryRepositoryImpl @Inject constructor(
     override suspend fun updateCategory(category: Category): Result<Unit> {
         return try {
             categoryDao.update(category.toEntity())
+            
+            // Schedule post-operation sync for custom categories
+            if (!category.isDefault) {
+                syncScheduler.schedulePostOperationSync()
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -58,6 +72,11 @@ class CategoryRepositoryImpl @Inject constructor(
             }
             
             categoryDao.delete(id)
+            
+            // Schedule post-operation sync for all category deletions
+            // The sync will handle the case appropriately
+            syncScheduler.schedulePostOperationSync()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

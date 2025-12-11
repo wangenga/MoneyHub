@@ -7,6 +7,7 @@ import com.finance.app.domain.model.SyncStatus
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.TransactionRepository
+import com.finance.app.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,8 @@ import javax.inject.Inject
  */
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncScheduler: SyncScheduler
 ) : TransactionRepository {
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
@@ -77,6 +79,10 @@ class TransactionRepositoryImpl @Inject constructor(
             )
             
             transactionDao.insert(transactionToInsert.toEntity())
+            
+            // Schedule post-operation sync
+            syncScheduler.schedulePostOperationSync()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -101,6 +107,10 @@ class TransactionRepositoryImpl @Inject constructor(
             )
             
             transactionDao.update(transactionToUpdate.toEntity())
+            
+            // Schedule post-operation sync
+            syncScheduler.schedulePostOperationSync()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -125,6 +135,10 @@ class TransactionRepositoryImpl @Inject constructor(
             
             // Delete the transaction
             transactionDao.delete(id)
+            
+            // Schedule post-operation sync
+            syncScheduler.schedulePostOperationSync()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

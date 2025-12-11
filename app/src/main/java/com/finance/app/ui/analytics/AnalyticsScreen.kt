@@ -52,17 +52,11 @@ import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
-import com.patrykandpatrick.vico.compose.chart.pie.pieChart
-import com.patrykandpatrick.vico.compose.component.shape.shader.fromBrush
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.core.axis.AxisItemPlacer
-import com.patrykandpatrick.vico.core.chart.composed.plus
-import com.patrykandpatrick.vico.core.chart.pie.PieChart
-import com.patrykandpatrick.vico.core.component.shape.shader.DynamicShaders
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
 import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.composed.plus
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.IncomeExpenseData
 import com.finance.app.domain.model.TrendPoint
@@ -183,6 +177,7 @@ private fun AnalyticsContent(
 /**
  * Date range selector with preset options
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateRangeSelector(
     selectedPreset: DateRangePreset,
@@ -354,21 +349,17 @@ private fun SpendingByCategoryChart(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (spendingByCategory.isNotEmpty()) {
-                // Create pie chart entries
+                // Create chart entries
                 val entries = spendingByCategory.entries.mapIndexed { index, (category, amount) ->
-                    PieChart.Entry(
-                        value = amount.toFloat(),
-                        color = Color(android.graphics.Color.parseColor(category.color)).toArgb(),
-                        label = category.name
-                    )
+                    FloatEntry(index.toFloat(), amount.toFloat())
                 }
 
                 ProvideChartStyle {
                     Chart(
-                        chart = pieChart(),
-                        model = ChartEntryModelProducer(
-                            entries.map { FloatEntry(it.value, it.value) }
-                        ).getModel(),
+                        chart = columnChart(),
+                        model = ChartEntryModelProducer(entries).requireModel(),
+                        startAxis = rememberStartAxis(),
+                        bottomAxis = rememberBottomAxis(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
@@ -455,20 +446,14 @@ private fun IncomeVsExpenseChart(
             val incomeEntries = listOf(FloatEntry(0f, incomeExpenseData.totalIncome.toFloat()))
             val expenseEntries = listOf(FloatEntry(1f, incomeExpenseData.totalExpense.toFloat()))
 
+            val allEntries = incomeEntries + expenseEntries
+            
             ProvideChartStyle {
                 Chart(
                     chart = columnChart(),
-                    model = ComposedChartEntryModelProducer.build {
-                        add(incomeEntries)
-                        add(expenseEntries)
-                    }.getModel(),
+                    model = ChartEntryModelProducer(allEntries).requireModel(),
                     startAxis = rememberStartAxis(),
-                    bottomAxis = rememberBottomAxis(
-                        itemPlacer = AxisItemPlacer.default(
-                            spacing = 1,
-                            addExtremeLabelPadding = true
-                        )
-                    ),
+                    bottomAxis = rememberBottomAxis(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
@@ -528,7 +513,7 @@ private fun SpendingTrendChart(
                 ProvideChartStyle {
                     Chart(
                         chart = lineChart(),
-                        model = ChartEntryModelProducer(entries).getModel(),
+                        model = ChartEntryModelProducer(entries).requireModel(),
                         startAxis = rememberStartAxis(),
                         bottomAxis = rememberBottomAxis(),
                         modifier = Modifier

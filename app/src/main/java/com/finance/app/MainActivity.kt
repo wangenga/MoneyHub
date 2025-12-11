@@ -10,13 +10,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.finance.app.domain.repository.AuthRepository
+import com.finance.app.domain.sync.SyncScheduler
 import com.finance.app.ui.auth.AuthNavigation
 import com.finance.app.ui.theme.FinanceAppTheme
 import com.finance.app.util.ActivityProvider
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -51,6 +64,19 @@ class MainActivity : FragmentActivity() {
                         }
                     )
                 }
+            }
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        
+        // Schedule foreground sync when app comes to foreground
+        // Only if user is authenticated
+        lifecycleScope.launch {
+            val currentUser = authRepository.getCurrentUser().first()
+            if (currentUser != null) {
+                syncScheduler.scheduleForegroundSync()
             }
         }
     }

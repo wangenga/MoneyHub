@@ -27,6 +27,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE userId = :userId AND syncStatus = :syncStatus")
     fun getTransactionsBySyncStatus(userId: String, syncStatus: String): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND syncStatus = :syncStatus")
+    suspend fun getTransactionsByStatus(userId: String, syncStatus: String): List<TransactionEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: TransactionEntity)
 

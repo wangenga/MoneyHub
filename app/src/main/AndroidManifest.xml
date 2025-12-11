@@ -18,6 +18,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PersonalFinanceApp"
         tools:targetApi="31">
+        
+        <!-- Remove the default WorkManager initializer since we're using custom configuration -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
