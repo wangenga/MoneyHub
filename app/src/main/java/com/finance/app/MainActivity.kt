@@ -10,13 +10,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.finance.app.domain.repository.AuthRepository
+import com.finance.app.domain.sync.SyncScheduler
 import com.finance.app.ui.auth.AuthNavigation
 import com.finance.app.ui.theme.FinanceAppTheme
 import com.finance.app.util.ActivityProvider
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
+    
+    @Inject
+    lateinit var authRepository: AuthRepository
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -33,12 +46,37 @@ class MainActivity : FragmentActivity() {
                     AuthNavigation(
                         onAuthenticationComplete = {
                             // TODO: Navigate to main app screen (will be implemented in later tasks)
+                            android.util.Log.d("MainActivity", "Authentication successful!")
+                            // For now, show a toast to confirm success
+                            android.widget.Toast.makeText(
+                                this,
+                                "Login successful! Main app coming soon...",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
                         },
                         onGoogleSignIn = {
                             // TODO: Implement Google Sign-In flow (requires Google Sign-In setup)
+                            android.widget.Toast.makeText(
+                                this,
+                                "Google Sign-In coming soon...",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
                         }
                     )
                 }
+            }
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        
+        // Schedule foreground sync when app comes to foreground
+        // Only if user is authenticated
+        lifecycleScope.launch {
+            val currentUser = authRepository.getCurrentUser().first()
+            if (currentUser != null) {
+                syncScheduler.scheduleForegroundSync()
             }
         }
     }

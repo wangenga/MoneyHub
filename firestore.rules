@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can only access their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Transactions subcollection - users can only access their own transactions
+      match /transactions/{transactionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validate transaction data structure and types
+        allow create, update: if request.auth != null 
+          && request.auth.uid == userId
+          && validateTransaction(request.resource.data);
+      }
+      
+      // Categories subcollection - users can only access their own categories
+      match /categories/{categoryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Validate category data structure and types
+        allow create, update: if request.auth != null 
+          && request.auth.uid == userId
+          && validateCategory(request.resource.data);
+      }
+    }
+    
+    // Helper functions for data validation
+    function validateTransaction(data) {
+      return data.keys().hasAll(['type', 'amount', 'categoryId', 'date', 'createdAt', 'updatedAt'])
+        && data.type is string
+        && data.type in ['INCOME', 'EXPENSE']
+        && data.amount is number
+        && data.amount > 0
+        && data.categoryId is string
+        && data.categoryId.size() > 0
+        && data.date is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (data.paymentMethod == null || data.paymentMethod is string)
+        && (data.notes == null || data.notes is string);
+    }
+    
+    function validateCategory(data) {
+      return data.keys().hasAll(['name', 'color', 'iconName', 'isDefault', 'createdAt', 'updatedAt'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 50
+        && data.color is string
+        && data.color.matches('^#[0-9A-Fa-f]{6}$') // Hex color validation
+        && data.iconName is string
+        && data.iconName.size() > 0
+        && data.isDefault is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+  }
+}
