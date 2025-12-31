@@ -2,8 +2,11 @@ package com.finance.app.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.finance.app.data.biometric.BiometricAuthenticatorImpl
+import com.finance.app.domain.biometric.BiometricAuthenticator
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,23 +19,31 @@ import javax.inject.Singleton
  */
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
+abstract class AppModule {
     
-    @Provides
+    @Binds
     @Singleton
-    fun provideFirebaseAuth(): FirebaseAuth {
-        return FirebaseAuth.getInstance()
-    }
+    abstract fun bindBiometricAuthenticator(
+        biometricAuthenticatorImpl: BiometricAuthenticatorImpl
+    ): BiometricAuthenticator
     
-    @Provides
-    @Singleton
-    fun provideFirebaseFirestore(): FirebaseFirestore {
-        return FirebaseFirestore.getInstance()
-    }
-    
-    @Provides
-    @Singleton
-    fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
-        return context.getSharedPreferences("finance_app_prefs", Context.MODE_PRIVATE)
+    companion object {
+        @Provides
+        @Singleton
+        fun provideFirebaseAuth(): FirebaseAuth {
+            return FirebaseAuth.getInstance()
+        }
+        
+        @Provides
+        @Singleton
+        fun provideFirebaseFirestore(): FirebaseFirestore {
+            return FirebaseFirestore.getInstance()
+        }
+        
+        @Provides
+        @Singleton
+        fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
+            return context.getSharedPreferences("finance_app_prefs", Context.MODE_PRIVATE)
+        }
     }
 }

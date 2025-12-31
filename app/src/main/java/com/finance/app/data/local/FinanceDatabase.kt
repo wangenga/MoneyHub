@@ -10,7 +10,6 @@ import com.finance.app.data.local.dao.UserDao
 import com.finance.app.data.local.entity.CategoryEntity
 import com.finance.app.data.local.entity.TransactionEntity
 import com.finance.app.data.local.entity.UserEntity
-import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 /**
  * Room database class with SQLCipher encryption
@@ -33,30 +32,22 @@ abstract class FinanceDatabase : RoomDatabase() {
         const val DATABASE_NAME = "finance_database"
 
         /**
-         * Creates an encrypted Room database instance using SQLCipher
+         * Creates a Room database instance
+         * TODO: Re-enable SQLCipher encryption once import issues are resolved
          */
         fun create(
             context: android.content.Context,
-            encryptionKey: ByteArray
+            encryptionKey: ByteArray? = null
         ): FinanceDatabase {
-            // Convert byte array to passphrase for SQLCipher
-            val passphrase = net.zetetic.database.sqlcipher.SQLiteDatabase.getBytes(
-                android.util.Base64.encodeToString(encryptionKey, android.util.Base64.DEFAULT).toCharArray()
-            )
-
-            // Create SQLCipher support factory
-            val factory = SupportOpenHelperFactory(passphrase)
-
             return Room.databaseBuilder(
                 context,
                 FinanceDatabase::class.java,
                 DATABASE_NAME
             )
-                .openHelperFactory(factory)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                        // Database created successfully with encryption
+                        // Database created successfully
                     }
                 })
                 .build()
