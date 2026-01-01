@@ -60,9 +60,7 @@ import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProd
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.IncomeExpenseData
 import com.finance.app.domain.model.TrendPoint
-import java.text.NumberFormat
-import java.util.Currency
-import java.util.Locale
+import com.finance.app.util.CurrencyUtils
 
 /**
  * Analytics screen displaying financial reports and charts
@@ -233,12 +231,6 @@ private fun SummaryStatistics(
     monthlyBalance: Double,
     modifier: Modifier = Modifier
 ) {
-    val currencyFormatter = remember {
-        NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-            currency = Currency.getInstance("USD")
-        }
-    }
-
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -256,7 +248,7 @@ private fun SummaryStatistics(
             // Total Income Card
             StatisticCard(
                 title = "Total Income",
-                value = currencyFormatter.format(incomeExpenseData.totalIncome),
+                value = CurrencyUtils.formatAmount(incomeExpenseData.totalIncome),
                 icon = Icons.Default.TrendingUp,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
@@ -265,7 +257,7 @@ private fun SummaryStatistics(
             // Total Expenses Card
             StatisticCard(
                 title = "Total Expenses",
-                value = currencyFormatter.format(incomeExpenseData.totalExpense),
+                value = CurrencyUtils.formatAmount(incomeExpenseData.totalExpense),
                 icon = Icons.Default.TrendingDown,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
@@ -275,7 +267,7 @@ private fun SummaryStatistics(
         // Net Balance Card
         StatisticCard(
             title = "Net Balance",
-            value = currencyFormatter.format(incomeExpenseData.netBalance),
+            value = CurrencyUtils.formatAmount(incomeExpenseData.netBalance),
             icon = if (incomeExpenseData.netBalance >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
             color = if (incomeExpenseData.netBalance >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             modifier = Modifier.fillMaxWidth()
@@ -383,12 +375,6 @@ private fun CategoryLegend(
     spendingByCategory: Map<Category, Double>,
     modifier: Modifier = Modifier
 ) {
-    val currencyFormatter = remember {
-        NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-            currency = Currency.getInstance("USD")
-        }
-    }
-
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -411,7 +397,7 @@ private fun CategoryLegend(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = currencyFormatter.format(amount),
+                    text = CurrencyUtils.formatAmount(amount),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )

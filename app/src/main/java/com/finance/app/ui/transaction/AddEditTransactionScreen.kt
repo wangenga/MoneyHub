@@ -94,11 +94,12 @@ fun AddEditTransactionScreen(
             OutlinedTextField(
                 value = uiState.amount,
                 onValueChange = { viewModel.updateAmount(it) },
-                label = { Text("Amount") },
+                label = { Text("Amount (KSh)") },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.AttachMoney,
-                        contentDescription = null
+                    Text(
+                        text = "KSh",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

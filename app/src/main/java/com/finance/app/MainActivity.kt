@@ -13,7 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.sync.SyncScheduler
-import com.finance.app.ui.auth.AuthNavigation
+import com.finance.app.ui.navigation.AppNavigation
 import com.finance.app.ui.theme.FinanceAppTheme
 import com.finance.app.util.ActivityProvider
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,27 +42,7 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Auth navigation - will be replaced with main app navigation after authentication
-                    AuthNavigation(
-                        onAuthenticationComplete = {
-                            // TODO: Navigate to main app screen (will be implemented in later tasks)
-                            android.util.Log.d("MainActivity", "Authentication successful!")
-                            // For now, show a toast to confirm success
-                            android.widget.Toast.makeText(
-                                this,
-                                "Login successful! Main app coming soon...",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        },
-                        onGoogleSignIn = {
-                            // TODO: Implement Google Sign-In flow (requires Google Sign-In setup)
-                            android.widget.Toast.makeText(
-                                this,
-                                "Google Sign-In coming soon...",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    )
+                    AppNavigation()
                 }
             }
         }

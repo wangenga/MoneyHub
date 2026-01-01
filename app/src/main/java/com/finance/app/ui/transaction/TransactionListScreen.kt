@@ -20,7 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.TransactionType
-import java.text.NumberFormat
+import com.finance.app.util.CurrencyUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -226,7 +226,7 @@ private fun TransactionItem(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = formatAmount(transaction.amount, transaction.type),
+                    text = CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (transaction.type == TransactionType.INCOME) {
@@ -343,12 +343,6 @@ private fun ErrorView(
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
-}
-
-private fun formatAmount(amount: Double, type: TransactionType): String {
-    val formatter = NumberFormat.getCurrencyInstance()
-    val formatted = formatter.format(amount)
-    return if (type == TransactionType.INCOME) "+$formatted" else "-$formatted"
 }
 
 private fun parseColor(colorString: String): Color {
