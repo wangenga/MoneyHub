@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.finance.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
 
@@ -48,6 +48,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 }
