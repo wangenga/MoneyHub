@@ -24,8 +24,6 @@ fun AppNavigation(
     viewModel: AppNavigationViewModel = hiltViewModel()
 ) {
     val navigationState by viewModel.navigationState.collectAsState(initial = NavigationState.ONBOARDING)
-    val isAuthenticated by viewModel.isAuthenticated.collectAsState(initial = false)
-    val currentUser by viewModel.currentUser.collectAsState(initial = null)
     
     // Navigate based on navigation state
     LaunchedEffect(navigationState) {

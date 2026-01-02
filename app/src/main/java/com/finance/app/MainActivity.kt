@@ -16,6 +16,7 @@ import com.finance.app.domain.sync.SyncScheduler
 import com.finance.app.ui.navigation.AppNavigation
 import com.finance.app.ui.theme.FinanceAppTheme
 import com.finance.app.util.ActivityProvider
+import com.finance.app.util.DatabaseDebugUtil
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +30,9 @@ class MainActivity : FragmentActivity() {
     
     @Inject
     lateinit var authRepository: AuthRepository
+    
+    @Inject
+    lateinit var databaseDebugUtil: DatabaseDebugUtil
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +61,11 @@ class MainActivity : FragmentActivity() {
             val currentUser = authRepository.getCurrentUser().first()
             if (currentUser != null) {
                 syncScheduler.scheduleForegroundSync()
+            }
+            
+            // Debug: Log database contents (only in debug builds)
+            if (BuildConfig.DEBUG) {
+                databaseDebugUtil.logDatabaseSummary()
             }
         }
     }

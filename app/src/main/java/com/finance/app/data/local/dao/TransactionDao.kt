@@ -29,6 +29,9 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE userId = :userId AND syncStatus = :syncStatus")
     suspend fun getTransactionsByStatus(userId: String, syncStatus: String): List<TransactionEntity>
+    
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    fun getAllTransactionsForDebug(): Flow<List<TransactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: TransactionEntity)
