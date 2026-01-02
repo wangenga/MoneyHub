@@ -13,32 +13,36 @@ import androidx.navigation.compose.rememberNavController
 import com.finance.app.ui.auth.AuthNavigation
 import com.finance.app.ui.auth.BiometricLockScreen
 import com.finance.app.ui.navigation.AppNavigationViewModel
+import com.finance.app.ui.onboarding.OnboardingScreen
 
 /**
- * Root navigation component that handles authentication flow and main app navigation
+ * Root navigation component that handles onboarding, authentication flow and main app navigation
  */
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     viewModel: AppNavigationViewModel = hiltViewModel()
 ) {
+    val navigationState by viewModel.navigationState.collectAsState(initial = NavigationState.ONBOARDING)
     val isAuthenticated by viewModel.isAuthenticated.collectAsState(initial = false)
     val currentUser by viewModel.currentUser.collectAsState(initial = null)
     
-    // Navigate based on authentication state
-    LaunchedEffect(isAuthenticated, currentUser) {
-        if (isAuthenticated && currentUser != null) {
-            // User is authenticated, navigate to main app
-            navController.navigate(NavigationRoutes.MAIN_GRAPH) {
-                popUpTo(NavigationRoutes.AUTH_GRAPH) {
-                    inclusive = true
+    // Navigate based on navigation state
+    LaunchedEffect(navigationState) {
+        when (navigationState) {
+            NavigationState.ONBOARDING -> {
+                navController.navigate(NavigationRoutes.ONBOARDING) {
+                    popUpTo(0) { inclusive = true }
                 }
             }
-        } else {
-            // User is not authenticated, navigate to auth
-            navController.navigate(NavigationRoutes.AUTH_GRAPH) {
-                popUpTo(NavigationRoutes.MAIN_GRAPH) {
-                    inclusive = true
+            NavigationState.AUTH -> {
+                navController.navigate(NavigationRoutes.AUTH_GRAPH) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            NavigationState.MAIN -> {
+                navController.navigate(NavigationRoutes.MAIN_GRAPH) {
+                    popUpTo(0) { inclusive = true }
                 }
             }
         }
@@ -46,8 +50,25 @@ fun AppNavigation(
     
     NavHost(
         navController = navController,
-        startDestination = if (isAuthenticated) NavigationRoutes.MAIN_GRAPH else NavigationRoutes.AUTH_GRAPH
+        startDestination = when (navigationState) {
+            NavigationState.ONBOARDING -> NavigationRoutes.ONBOARDING
+            NavigationState.AUTH -> NavigationRoutes.AUTH_GRAPH
+            NavigationState.MAIN -> NavigationRoutes.MAIN_GRAPH
+        }
     ) {
+        // Onboarding flow
+        composable(NavigationRoutes.ONBOARDING) {
+            OnboardingScreen(
+                onNavigateToAuth = {
+                    navController.navigate(NavigationRoutes.AUTH_GRAPH) {
+                        popUpTo(NavigationRoutes.ONBOARDING) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+        
         // Authentication flow
         navigation(
             startDestination = NavigationRoutes.LOGIN,
@@ -90,12 +111,6 @@ fun AppNavigation(
         // Main app flow
         composable(NavigationRoutes.MAIN_GRAPH) {
             MainNavigation()
-        }
-        
-        // Onboarding (future implementation)
-        composable(NavigationRoutes.ONBOARDING) {
-            // TODO: Implement onboarding screens
-            // OnboardingNavigation()
         }
     }
 }
