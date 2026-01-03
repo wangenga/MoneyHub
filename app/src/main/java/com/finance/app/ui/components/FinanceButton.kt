@@ -176,3 +176,26 @@ fun RowScope.ButtonText(
         overflow = TextOverflow.Ellipsis
     )
 }
+
+/**
+ * Generic Finance button - defaults to primary style
+ */
+@Composable
+fun FinanceButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    leadingIcon: ImageVector? = null
+) {
+    FinancePrimaryButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        isLoading = isLoading,
+        leadingIcon = leadingIcon
+    ) {
+        ButtonText(text = text)
+    }
+}
