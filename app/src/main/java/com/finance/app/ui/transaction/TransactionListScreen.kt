@@ -41,7 +41,7 @@ fun TransactionListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val filterState by viewModel.filterState.collectAsState()
     val categories by viewModel.categories.collectAsState()
-
+    
     var showFilterDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -49,7 +49,16 @@ fun TransactionListScreen(
             TopAppBar(
                 title = { Text("Transactions") },
                 actions = {
-                    IconButton(onClick = { showFilterDialog = true }) {
+                    IconButton(
+                        onClick = { showFilterDialog = true },
+                        modifier = Modifier.semantics {
+                            contentDescription = if (filterState.hasActiveFilters()) {
+                                "Filter transactions, filters currently active"
+                            } else {
+                                "Filter transactions"
+                            }
+                        }
+                    ) {
                         Badge(
                             containerColor = if (filterState.hasActiveFilters()) {
                                 MaterialTheme.colorScheme.primary
@@ -59,7 +68,7 @@ fun TransactionListScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.FilterList,
-                                contentDescription = "Filter transactions"
+                                contentDescription = null // IconButton already has content description
                             )
                         }
                     }
@@ -69,11 +78,14 @@ fun TransactionListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddTransaction,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics {
+                    contentDescription = "Add new transaction"
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add transaction"
+                    contentDescription = null // FAB already has content description
                 )
             }
         }
@@ -166,11 +178,30 @@ private fun TransactionItem(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-
+    
+    // Create comprehensive content description for the transaction item
+    val transactionDescription = buildString {
+        append("Transaction: ")
+        append("${category?.name ?: "Unknown category"}, ")
+        append("${CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type)}, ")
+        append("${formatDate(transaction.date)}")
+        if (!transaction.notes.isNullOrBlank()) {
+            append(", Note: ${transaction.notes}")
+        }
+        append(". Double tap to edit.")
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                onClickLabel = "Edit transaction",
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics {
+                contentDescription = transactionDescription
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -188,7 +219,7 @@ private fun TransactionItem(
                 // Category icon
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(48.dp) // Minimum 48dp touch target
                         .clip(CircleShape)
                         .background(
                             category?.color?.let { parseColor(it) }
@@ -239,14 +270,18 @@ private fun TransactionItem(
                         Color(0xFFF44336)
                     }
                 )
-
+                
                 IconButton(
                     onClick = { showDeleteDialog = true },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(48.dp) // Minimum 48dp touch target
+                        .semantics {
+                            contentDescription = "Delete transaction: ${category?.name ?: "Unknown"}, ${CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type)}"
+                        }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete transaction",
+                        contentDescription = null, // IconButton already has content description
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
                     )
@@ -292,7 +327,7 @@ private fun EmptyTransactionsView(
     ) {
         Icon(
             imageVector = Icons.Default.Receipt,
-            contentDescription = if (hasFilters) "No transactions match filters" else "No transactions available",
+            contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -307,12 +342,7 @@ private fun EmptyTransactionsView(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (hasFilters) {
-            Button(
-                onClick = onClearFilters,
-                modifier = Modifier.semantics {
-                    contentDescription = "Clear all transaction filters"
-                }
-            ) {
+            Button(onClick = onClearFilters) {
                 Text("Clear Filters")
             }
         }
@@ -331,7 +361,7 @@ private fun ErrorView(
     ) {
         Icon(
             imageVector = Icons.Default.Error,
-            contentDescription = "Error occurred",
+            contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.error
         )

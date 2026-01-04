@@ -16,11 +16,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
- * Primary button component following Material 3 design
+ * Primary button component following Material 3 design with accessibility support
  */
 @Composable
 fun FinancePrimaryButton(
@@ -29,11 +33,17 @@ fun FinancePrimaryButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     leadingIcon: ImageVector? = null,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier
+            .height(48.dp) // Minimum 48dp touch target
+            .semantics {
+                role = Role.Button
+                contentDescription?.let { this.contentDescription = it }
+            },
         enabled = enabled && !isLoading,
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
         colors = ButtonDefaults.buttonColors(
@@ -52,7 +62,7 @@ fun FinancePrimaryButton(
             leadingIcon != null -> {
                 Icon(
                     imageVector = leadingIcon,
-                    contentDescription = null,
+                    contentDescription = null, // Icon is decorative when button has text
                     modifier = Modifier.size(18.dp)
                 )
                 content()
@@ -63,7 +73,7 @@ fun FinancePrimaryButton(
 }
 
 /**
- * Secondary button component (filled tonal)
+ * Secondary button component (filled tonal) with accessibility support
  */
 @Composable
 fun FinanceSecondaryButton(
@@ -72,11 +82,17 @@ fun FinanceSecondaryButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     leadingIcon: ImageVector? = null,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     FilledTonalButton(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier
+            .height(48.dp) // Minimum 48dp touch target
+            .semantics {
+                role = Role.Button
+                contentDescription?.let { this.contentDescription = it }
+            },
         enabled = enabled && !isLoading,
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
     ) {
@@ -91,7 +107,7 @@ fun FinanceSecondaryButton(
             leadingIcon != null -> {
                 Icon(
                     imageVector = leadingIcon,
-                    contentDescription = null,
+                    contentDescription = null, // Icon is decorative when button has text
                     modifier = Modifier.size(18.dp)
                 )
                 content()
@@ -102,7 +118,7 @@ fun FinanceSecondaryButton(
 }
 
 /**
- * Outlined button component
+ * Outlined button component with accessibility support
  */
 @Composable
 fun FinanceOutlinedButton(
@@ -111,11 +127,17 @@ fun FinanceOutlinedButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     leadingIcon: ImageVector? = null,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier
+            .height(48.dp) // Minimum 48dp touch target
+            .semantics {
+                role = Role.Button
+                contentDescription?.let { this.contentDescription = it }
+            },
         enabled = enabled && !isLoading,
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
     ) {
@@ -130,7 +152,7 @@ fun FinanceOutlinedButton(
             leadingIcon != null -> {
                 Icon(
                     imageVector = leadingIcon,
-                    contentDescription = null,
+                    contentDescription = null, // Icon is decorative when button has text
                     modifier = Modifier.size(18.dp)
                 )
                 content()
@@ -141,18 +163,24 @@ fun FinanceOutlinedButton(
 }
 
 /**
- * Text button component
+ * Text button component with accessibility support
  */
 @Composable
 fun FinanceTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier
+            .height(48.dp) // Minimum 48dp touch target
+            .semantics {
+                role = Role.Button
+                contentDescription?.let { this.contentDescription = it }
+            },
         enabled = enabled,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) {

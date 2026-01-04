@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -194,7 +196,7 @@ private fun DateRangeSelector(
             ) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
+                    contentDescription = "Date range selector",
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -214,7 +216,14 @@ private fun DateRangeSelector(
                     FilterChip(
                         selected = selectedPreset == preset,
                         onClick = { onPresetSelected(preset) },
-                        label = { Text(preset.displayName) }
+                        label = { Text(preset.displayName) },
+                        modifier = Modifier.semantics {
+                            contentDescription = if (selectedPreset == preset) {
+                                "Selected time period: ${preset.displayName}"
+                            } else {
+                                "Select time period: ${preset.displayName}"
+                            }
+                        }
                     )
                 }
             }
@@ -276,7 +285,7 @@ private fun SummaryStatistics(
 }
 
 /**
- * Individual statistic card component
+ * Individual statistic card component with accessibility support
  */
 @Composable
 private fun StatisticCard(
@@ -286,8 +295,12 @@ private fun StatisticCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val contentDesc = "$title: $value"
+    
     Card(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = contentDesc
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -296,7 +309,7 @@ private fun StatisticCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = null, // Decorative, content description is on the card
                 tint = color,
                 modifier = Modifier.size(32.dp)
             )
@@ -318,13 +331,23 @@ private fun StatisticCard(
 }
 
 /**
- * Pie chart showing spending breakdown by category
+ * Pie chart showing spending breakdown by category with accessibility support
  */
 @Composable
 private fun SpendingByCategoryChart(
     spendingByCategory: Map<Category, Double>,
     modifier: Modifier = Modifier
 ) {
+    // Create accessibility description for the chart
+    val chartDescription = buildString {
+        append("Spending by category chart. ")
+        val sortedEntries = spendingByCategory.entries.sortedByDescending { it.value }
+        sortedEntries.forEachIndexed { index, (category, amount) ->
+            if (index > 0) append(", ")
+            append("${category.name}: ${CurrencyUtils.formatAmount(amount)}")
+        }
+    }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -355,6 +378,9 @@ private fun SpendingByCategoryChart(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
+                            .semantics {
+                                contentDescription = chartDescription
+                            }
                     )
                 }
 
@@ -407,13 +433,18 @@ private fun CategoryLegend(
 }
 
 /**
- * Bar chart comparing income vs expenses
+ * Bar chart comparing income vs expenses with accessibility support
  */
 @Composable
 private fun IncomeVsExpenseChart(
     incomeExpenseData: IncomeExpenseData,
     modifier: Modifier = Modifier
 ) {
+    val chartDescription = "Income versus expenses chart. " +
+            "Total income: ${CurrencyUtils.formatAmount(incomeExpenseData.totalIncome)}, " +
+            "Total expenses: ${CurrencyUtils.formatAmount(incomeExpenseData.totalExpense)}, " +
+            "Net balance: ${CurrencyUtils.formatAmount(incomeExpenseData.netBalance)}"
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -443,6 +474,9 @@ private fun IncomeVsExpenseChart(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
+                        .semantics {
+                            contentDescription = chartDescription
+                        }
                 )
             }
 
@@ -469,13 +503,22 @@ private fun IncomeVsExpenseChart(
 }
 
 /**
- * Line chart showing spending trends over time
+ * Line chart showing spending trends over time with accessibility support
  */
 @Composable
 private fun SpendingTrendChart(
     spendingTrend: List<TrendPoint>,
     modifier: Modifier = Modifier
 ) {
+    val chartDescription = buildString {
+        append("Spending trend chart over time. ")
+        if (spendingTrend.isNotEmpty()) {
+            val minAmount = spendingTrend.minOfOrNull { it.amount } ?: 0.0
+            val maxAmount = spendingTrend.maxOfOrNull { it.amount } ?: 0.0
+            append("Spending ranges from ${CurrencyUtils.formatAmount(minAmount)} to ${CurrencyUtils.formatAmount(maxAmount)} over ${spendingTrend.size} data points.")
+        }
+    }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -505,6 +548,9 @@ private fun SpendingTrendChart(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
+                            .semantics {
+                                contentDescription = chartDescription
+                            }
                     )
                 }
             }
@@ -541,7 +587,7 @@ private fun LegendItem(
 }
 
 /**
- * Empty state when no analytics data is available
+ * Empty state when no analytics data is available with accessibility support
  */
 @Composable
 private fun EmptyAnalyticsState(
@@ -557,7 +603,7 @@ private fun EmptyAnalyticsState(
         ) {
             Icon(
                 imageVector = Icons.Default.TrendingUp,
-                contentDescription = null,
+                contentDescription = "No analytics data available",
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
