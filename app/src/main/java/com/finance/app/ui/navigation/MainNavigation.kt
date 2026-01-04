@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -35,13 +37,13 @@ fun MainNavigation(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    
+
     // Handle back navigation for main screens
     BackHandler(enabled = currentDestination?.route in BottomNavigationItem.items.map { it.route }) {
         // If we're on a main screen, don't handle back - let the system handle it (exit app)
         // This prevents getting stuck in the app
     }
-    
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -49,19 +51,20 @@ fun MainNavigation(
             if (currentDestination?.route in BottomNavigationItem.items.map { it.route }) {
                 NavigationBar {
                     BottomNavigationItem.items.forEach { item ->
+                        val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
                         NavigationBarItem(
                             icon = {
                                 Icon(
-                                    imageVector = if (currentDestination?.hierarchy?.any { it.route == item.route } == true) {
+                                    imageVector = if (isSelected) {
                                         item.selectedIcon
                                     } else {
                                         item.unselectedIcon
                                     },
-                                    contentDescription = item.title
+                                    contentDescription = null // NavigationBarItem handles this
                                 )
                             },
                             label = { Text(item.title) },
-                            selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                            selected = isSelected,
                             onClick = {
                                 navController.navigate(item.route) {
                                     // Pop up to the start destination of the graph to
@@ -75,6 +78,13 @@ fun MainNavigation(
                                     launchSingleTop = true
                                     // Restore state when reselecting a previously selected item
                                     restoreState = true
+                                }
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = if (isSelected) {
+                                    "${item.title}, selected"
+                                } else {
+                                    "Navigate to ${item.title}"
                                 }
                             }
                         )
@@ -99,17 +109,17 @@ fun MainNavigation(
                     }
                 )
             }
-            
+
             composable(NavigationRoutes.REPORTS,
                 deepLinks = listOf(navDeepLink { uriPattern = NavigationRoutes.DEEP_LINK_REPORTS })
             ) {
                 AnalyticsScreen()
             }
-            
+
             composable(NavigationRoutes.SETTINGS) {
                 SettingsScreen()
             }
-            
+
             // Transaction screens
             composable(NavigationRoutes.ADD_TRANSACTION,
                 deepLinks = listOf(navDeepLink { uriPattern = NavigationRoutes.DEEP_LINK_ADD_TRANSACTION })
@@ -120,7 +130,7 @@ fun MainNavigation(
                     }
                 )
             }
-            
+
             composable(NavigationRoutes.EDIT_TRANSACTION,
                 deepLinks = listOf(navDeepLink { uriPattern = NavigationRoutes.DEEP_LINK_TRANSACTION })
             ) {
@@ -130,7 +140,7 @@ fun MainNavigation(
                     }
                 )
             }
-            
+
             // Category screens
             composable(NavigationRoutes.CATEGORY_MANAGEMENT) {
                 CategoryManagementScreen(
@@ -145,7 +155,7 @@ fun MainNavigation(
                     }
                 )
             }
-            
+
             composable(NavigationRoutes.ADD_CATEGORY) {
                 AddEditCategoryScreen(
                     onNavigateBack = {
@@ -153,7 +163,7 @@ fun MainNavigation(
                     }
                 )
             }
-            
+
             composable(NavigationRoutes.EDIT_CATEGORY) {
                 AddEditCategoryScreen(
                     onNavigateBack = {

@@ -9,6 +9,7 @@ import com.finance.app.ui.theme.ThemeManager
 import com.finance.app.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,7 +42,7 @@ class SettingsRepositoryImpl @Inject constructor(
     
     override fun isBiometricLockEnabled(): Flow<Boolean> {
         // Create a flow that emits the current biometric state
-        return kotlinx.coroutines.flow.flowOf(biometricAuthenticator.isBiometricEnabled())
+        return flowOf(biometricAuthenticator.isBiometricEnabled())
     }
     
     override suspend fun setBiometricLockEnabled(enabled: Boolean) {

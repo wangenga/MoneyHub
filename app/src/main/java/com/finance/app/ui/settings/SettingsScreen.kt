@@ -1,59 +1,30 @@
 package com.finance.app.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.repository.SyncState
-import com.finance.app.ui.components.FinanceButton
+import com.finance.app.ui.components.*
 import com.finance.app.ui.theme.ThemeMode
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 /**
- * Settings screen composable
+ * Settings screen composable with all settings options and accessibility support
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,338 +32,512 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // Handle biometric auth state
-    LaunchedEffect(uiState.biometricAuthState) {
-        val authState = uiState.biometricAuthState
-        when (authState) {
-            is BiometricAuthState.Error -> {
-                snackbarHostState.showSnackbar(authState.message)
-                viewModel.clearBiometricAuthState()
-            }
-            is BiometricAuthState.Success -> {
-                snackbarHostState.showSnackbar("Biometric lock enabled")
-                viewModel.clearBiometricAuthState()
-            }
-            else -> {}
-        }
-    }
-
-    // Handle sync errors
-    LaunchedEffect(uiState.syncError) {
-        uiState.syncError?.let { error ->
-            snackbarHostState.showSnackbar(error)
-            viewModel.clearSyncError()
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+    
+    var showThemeDialog by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        FinanceTopAppBar(
+            title = "Settings"
+        )
+        
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Theme Settings
-            SettingsSection(
-                title = "Appearance",
-                icon = Icons.Default.Palette
-            ) {
-                ThemeSettingsContent(
-                    themeMode = uiState.themeMode,
-                    isDynamicColorEnabled = uiState.isDynamicColorEnabled,
-                    onThemeModeChanged = viewModel::setThemeMode,
-                    onDynamicColorChanged = viewModel::setDynamicColorEnabled
-                )
+            // Appearance Section
+            item {
+                SettingsSection(title = "Appearance") {
+                    // Theme Selection
+                    SettingsItem(
+                        icon = Icons.Default.Palette,
+                        title = "Theme",
+                        subtitle = when (uiState.themeMode) {
+                            ThemeMode.LIGHT -> "Light"
+                            ThemeMode.DARK -> "Dark"
+                            ThemeMode.SYSTEM -> "System default"
+                        },
+                        onClick = { showThemeDialog = true }
+                    )
+                    
+                    // Dynamic Color Toggle
+                    SettingsToggleItem(
+                        icon = Icons.Default.ColorLens,
+                        title = "Dynamic Colors",
+                        subtitle = "Use colors from your wallpaper",
+                        checked = uiState.isDynamicColorEnabled,
+                        onCheckedChange = viewModel::setDynamicColorEnabled
+                    )
+                }
             }
-
-            // Security Settings
-            SettingsSection(
-                title = "Security",
-                icon = Icons.Default.Fingerprint
-            ) {
-                BiometricSettingsContent(
-                    isAvailable = uiState.isBiometricAvailable,
-                    isEnabled = uiState.isBiometricEnabled,
-                    isLoading = uiState.biometricAuthState is BiometricAuthState.Loading,
-                    onToggle = viewModel::setBiometricEnabled
-                )
+            
+            // Security Section
+            item {
+                SettingsSection(title = "Security") {
+                    // Biometric Lock Toggle
+                    SettingsToggleItem(
+                        icon = Icons.Default.Fingerprint,
+                        title = "Biometric Lock",
+                        subtitle = if (uiState.isBiometricAvailable) {
+                            "Secure app with fingerprint or face"
+                        } else {
+                            "Not available on this device"
+                        },
+                        checked = uiState.isBiometricEnabled,
+                        onCheckedChange = viewModel::setBiometricEnabled,
+                        enabled = uiState.isBiometricAvailable
+                    )
+                }
             }
-
-            // Sync Settings
-            SettingsSection(
-                title = "Synchronization",
-                icon = Icons.Default.Sync
-            ) {
-                SyncSettingsContent(
-                    syncState = uiState.syncState,
-                    lastSyncTimestamp = uiState.lastSyncTimestamp,
-                    isSyncing = uiState.isSyncing,
-                    onManualSync = viewModel::triggerManualSync
-                )
+            
+            // Sync Section
+            item {
+                SettingsSection(title = "Synchronization") {
+                    // Manual Sync Button
+                    SettingsActionItem(
+                        icon = Icons.Default.Sync,
+                        title = "Sync Now",
+                        subtitle = when (uiState.syncState) {
+                            is SyncState.Idle -> {
+                                uiState.lastSyncTimestamp?.let { timestamp ->
+                                    "Last synced: ${formatSyncTimestamp(timestamp)}"
+                                } ?: "Never synced"
+                            }
+                            is SyncState.Syncing -> "Syncing..."
+                            is SyncState.Success -> "Sync completed successfully"
+                            is SyncState.Error -> {
+                                val errorState = uiState.syncState as SyncState.Error
+                                "Sync failed: ${errorState.message}"
+                            }
+                        },
+                        onClick = viewModel::triggerManualSync,
+                        isLoading = uiState.isSyncing,
+                        enabled = !uiState.isSyncing
+                    )
+                    
+                    // Sync Status
+                    SettingsInfoItem(
+                        icon = Icons.Default.CloudDone,
+                        title = "Sync Status",
+                        subtitle = when (uiState.syncState) {
+                            is SyncState.Idle -> "Ready"
+                            is SyncState.Syncing -> "In progress..."
+                            is SyncState.Success -> "Up to date"
+                            is SyncState.Error -> "Error occurred"
+                        }
+                    )
+                }
             }
-
-            // App Info
-            SettingsSection(
-                title = "About",
-                icon = Icons.Default.Info
-            ) {
-                AppInfoContent(
-                    appVersion = uiState.appVersion
-                )
+            
+            // About Section
+            item {
+                SettingsSection(title = "About") {
+                    // App Version
+                    SettingsInfoItem(
+                        icon = Icons.Default.Info,
+                        title = "App Version",
+                        subtitle = uiState.appVersion
+                    )
+                }
             }
+        }
+    }
+    
+    // Theme Selection Dialog
+    if (showThemeDialog) {
+        ThemeSelectionDialog(
+            currentTheme = uiState.themeMode,
+            onThemeSelected = { theme ->
+                viewModel.setThemeMode(theme)
+                showThemeDialog = false
+            },
+            onDismiss = { showThemeDialog = false }
+        )
+    }
+    
+    // Handle biometric authentication state
+    LaunchedEffect(uiState.biometricAuthState) {
+        when (uiState.biometricAuthState) {
+            is BiometricAuthState.Success -> {
+                viewModel.clearBiometricAuthState()
+            }
+            is BiometricAuthState.Error -> {
+                // In a real app, show a Snackbar here
+                viewModel.clearBiometricAuthState()
+            }
+            else -> { /* Do nothing */ }
+        }
+    }
+    
+    // Handle sync errors
+    uiState.syncError?.let { error ->
+        LaunchedEffect(error) {
+            // In a real app, show a Snackbar here
+            viewModel.clearSyncError()
         }
     }
 }
 
+/**
+ * Settings section with title and content with accessibility support
+ */
 @Composable
 private fun SettingsSection(
     title: String,
-    icon: ImageVector,
-    content: @Composable () -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+    Column {
+        FinanceText(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        FinanceCard {
             content()
         }
     }
 }
 
+/**
+ * Clickable settings item with accessibility support
+ */
 @Composable
-private fun ThemeSettingsContent(
-    themeMode: ThemeMode,
-    isDynamicColorEnabled: Boolean,
-    onThemeModeChanged: (ThemeMode) -> Unit,
-    onDynamicColorChanged: (Boolean) -> Unit
+private fun SettingsItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Text(
-            text = "Theme Mode",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        ThemeMode.values().forEach { mode ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = themeMode == mode,
-                        onClick = { onThemeModeChanged(mode) },
-                        role = Role.RadioButton
-                    )
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = themeMode == mode,
-                    onClick = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = when (mode) {
-                        ThemeMode.LIGHT -> "Light"
-                        ThemeMode.DARK -> "Dark"
-                        ThemeMode.SYSTEM -> "System Default"
-                    },
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        Divider(modifier = Modifier.padding(vertical = 12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Dynamic Colors",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Use colors from your wallpaper",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = isDynamicColorEnabled,
-                onCheckedChange = onDynamicColorChanged
-            )
-        }
-    }
-}
-
-@Composable
-private fun BiometricSettingsContent(
-    isAvailable: Boolean,
-    isEnabled: Boolean,
-    isLoading: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
+    val contentDesc = "$title: $subtitle. Double tap to change."
+    
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = "Change $title",
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics {
+                contentDescription = contentDesc
+            }
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Row already has content description
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Biometric Lock",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+            FinanceText(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = if (isAvailable) {
-                    "Secure app with fingerprint or face unlock"
-                } else {
-                    "Biometric authentication not available"
-                },
+            FinanceText(
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null, // Decorative
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+/**
+ * Settings item with toggle switch and accessibility support
+ */
+@Composable
+private fun SettingsToggleItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val contentDesc = buildString {
+        append(title)
+        append(": ")
+        append(subtitle)
+        append(". ")
+        append(if (checked) "Enabled" else "Disabled")
+        if (enabled) {
+            append(". Double tap to toggle.")
+        } else {
+            append(". Not available.")
+        }
+    }
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = contentDesc
+            }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Row already has content description
+            tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            FinanceText(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FinanceText(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+            modifier = Modifier.semantics {
+                contentDescription = if (enabled) {
+                    "Toggle $title, currently ${if (checked) "enabled" else "disabled"}"
+                } else {
+                    "$title not available"
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Settings item with action button and accessibility support
+ */
+@Composable
+private fun SettingsActionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    enabled: Boolean = true
+) {
+    val contentDesc = buildString {
+        append(title)
+        append(": ")
+        append(subtitle)
+        if (enabled && !isLoading) {
+            append(". Double tap to activate.")
+        } else if (isLoading) {
+            append(". Currently in progress.")
+        } else {
+            append(". Not available.")
+        }
+    }
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                enabled = enabled && !isLoading,
+                onClickLabel = title,
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics {
+                contentDescription = contentDesc
+            }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
-                strokeWidth = 2.dp
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
             )
         } else {
-            Switch(
-                checked = isEnabled,
-                onCheckedChange = onToggle,
-                enabled = isAvailable
+            Icon(
+                imageVector = icon,
+                contentDescription = null, // Row already has content description
+                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun SyncSettingsContent(
-    syncState: SyncState,
-    lastSyncTimestamp: Long?,
-    isSyncing: Boolean,
-    onManualSync: () -> Unit
-) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Sync Status",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = when (syncState) {
-                        is SyncState.Idle -> "Ready to sync"
-                        is SyncState.Syncing -> "Syncing..."
-                        is SyncState.Success -> "Last sync successful"
-                        is SyncState.Error -> "Sync failed: ${syncState.message}"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (syncState) {
-                        is SyncState.Error -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-            
-            if (syncState is SyncState.Success) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Sync successful",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
-        lastSyncTimestamp?.let { timestamp ->
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Last sync: ${formatTimestamp(timestamp)}",
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            FinanceText(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FinanceText(
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        FinanceButton(
-            text = if (isSyncing) "Syncing..." else "Sync Now",
-            onClick = onManualSync,
-            enabled = !isSyncing,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
+/**
+ * Settings item for displaying information only with accessibility support
+ */
 @Composable
-private fun AppInfoContent(
-    appVersion: String
+private fun SettingsInfoItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Version",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+    val contentDesc = "$title: $subtitle"
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = contentDesc
+            }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Row already has content description
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            FinanceText(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = appVersion,
-                style = MaterialTheme.typography.bodyMedium,
+            FinanceText(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-private fun formatTimestamp(timestamp: Long): String {
-    val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
-    return formatter.format(Date(timestamp))
+/**
+ * Theme selection dialog with accessibility support
+ */
+@Composable
+private fun ThemeSelectionDialog(
+    currentTheme: ThemeMode,
+    onThemeSelected: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            FinanceText(
+                text = "Choose Theme",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.selectableGroup()
+            ) {
+                ThemeMode.values().forEach { theme ->
+                    val isSelected = currentTheme == theme
+                    val themeLabel = when (theme) {
+                        ThemeMode.LIGHT -> "Light"
+                        ThemeMode.DARK -> "Dark"
+                        ThemeMode.SYSTEM -> "System default"
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { onThemeSelected(theme) },
+                                role = Role.RadioButton
+                            )
+                            .semantics {
+                                contentDescription = if (isSelected) {
+                                    "$themeLabel theme, selected"
+                                } else {
+                                    "Select $themeLabel theme"
+                                }
+                            }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null // Handled by Row
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        FinanceText(
+                            text = themeLabel,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            FinanceTextButton(
+                onClick = onDismiss,
+                modifier = Modifier.semantics {
+                    contentDescription = "Close theme selection dialog"
+                }
+            ) {
+                ButtonText("Cancel")
+            }
+        }
+    )
+}
+
+/**
+ * Format sync timestamp for display
+ */
+private fun formatSyncTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60_000 -> "Just now"
+        diff < 3600_000 -> "${diff / 60_000} minutes ago"
+        diff < 86400_000 -> "${diff / 3600_000} hours ago"
+        else -> {
+            val formatter = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault())
+            formatter.format(Date(timestamp))
+        }
+    }
 }

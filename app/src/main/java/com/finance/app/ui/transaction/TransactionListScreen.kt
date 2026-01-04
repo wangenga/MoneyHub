@@ -14,6 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,7 +41,7 @@ fun TransactionListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val filterState by viewModel.filterState.collectAsState()
     val categories by viewModel.categories.collectAsState()
-    
+
     var showFilterDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -162,7 +166,7 @@ private fun TransactionItem(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -235,7 +239,7 @@ private fun TransactionItem(
                         Color(0xFFF44336)
                     }
                 )
-                
+
                 IconButton(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.size(24.dp)
@@ -288,7 +292,7 @@ private fun EmptyTransactionsView(
     ) {
         Icon(
             imageVector = Icons.Default.Receipt,
-            contentDescription = null,
+            contentDescription = if (hasFilters) "No transactions match filters" else "No transactions available",
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -303,7 +307,12 @@ private fun EmptyTransactionsView(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (hasFilters) {
-            Button(onClick = onClearFilters) {
+            Button(
+                onClick = onClearFilters,
+                modifier = Modifier.semantics {
+                    contentDescription = "Clear all transaction filters"
+                }
+            ) {
                 Text("Clear Filters")
             }
         }
@@ -322,7 +331,7 @@ private fun ErrorView(
     ) {
         Icon(
             imageVector = Icons.Default.Error,
-            contentDescription = null,
+            contentDescription = "Error occurred",
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.error
         )
