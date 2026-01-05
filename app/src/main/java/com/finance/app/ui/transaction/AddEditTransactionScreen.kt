@@ -328,46 +328,59 @@ private fun CategorySelector(
 ) {
     val selectedCategory = categories.find { it.id == selectedCategoryId }
     
-    OutlinedTextField(
-        value = selectedCategory?.name ?: "",
-        onValueChange = {},
-        label = { Text("Category") },
-        leadingIcon = {
-            if (selectedCategory != null) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(parseColor(selectedCategory.color)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = selectedCategory.iconName.firstOrNull()?.toString() ?: "?",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Category,
-                    contentDescription = null
-                )
-            }
-        },
-        trailingIcon = {
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null
-            )
-        },
-        readOnly = true,
-        isError = isError,
-        supportingText = errorMessage?.let { { Text(it) } },
-        placeholder = { Text("Select a category") },
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-    )
+    ) {
+        OutlinedTextField(
+            value = selectedCategory?.name ?: "",
+            onValueChange = {},
+            label = { Text("Category") },
+            leadingIcon = {
+                if (selectedCategory != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(parseColor(selectedCategory.color)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = selectedCategory.iconName.firstOrNull()?.toString() ?: "?",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Category,
+                        contentDescription = null
+                    )
+                }
+            },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null
+                )
+            },
+            readOnly = true,
+            enabled = false,
+            isError = isError,
+            supportingText = errorMessage?.let { { Text(it) } },
+            placeholder = { Text("Select a category") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                disabledLabelColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+    }
 }
 
 private fun formatDate(timestamp: Long): String {

@@ -50,7 +50,7 @@ fun CategorySelectorDialog(
                 
                 // Divider before add option
                 item {
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.outlineVariant
                     )

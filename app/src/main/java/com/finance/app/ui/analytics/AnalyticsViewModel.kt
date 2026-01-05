@@ -165,7 +165,11 @@ class AnalyticsViewModel @Inject constructor(
     private fun getLast3MonthsRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
         
-        // End date is now
+        // End date is end of today
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         val endDate = calendar.timeInMillis
         
         // Start date is 3 months ago
@@ -186,7 +190,11 @@ class AnalyticsViewModel @Inject constructor(
     private fun getLast6MonthsRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
         
-        // End date is now
+        // End date is end of today
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         val endDate = calendar.timeInMillis
         
         // Start date is 6 months ago
@@ -207,7 +215,11 @@ class AnalyticsViewModel @Inject constructor(
     private fun getThisYearRange(): Pair<Long, Long> {
         val calendar = Calendar.getInstance()
         
-        // End date is now
+        // End date is end of today
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         val endDate = calendar.timeInMillis
         
         // Start date is beginning of year

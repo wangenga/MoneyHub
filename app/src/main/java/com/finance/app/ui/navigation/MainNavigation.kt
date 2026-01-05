@@ -126,21 +126,35 @@ fun MainNavigation(
             // Transaction screens
             composable(NavigationRoutes.ADD_TRANSACTION,
                 deepLinks = listOf(navDeepLink { uriPattern = NavigationRoutes.DEEP_LINK_ADD_TRANSACTION })
-            ) {
+            ) { backStackEntry ->
+                // Get the new category ID from SavedStateHandle if returning from category creation
+                val newCategoryId = backStackEntry.savedStateHandle.get<String>(NavigationRoutes.NEW_CATEGORY_ID_KEY)
+                
                 AddEditTransactionScreen(
                     onNavigateBack = {
                         navController.popBackStack()
-                    }
+                    },
+                    onNavigateToAddCategory = {
+                        navController.navigate(NavigationRoutes.ADD_CATEGORY_FROM_TRANSACTION)
+                    },
+                    newCategoryId = newCategoryId
                 )
             }
 
             composable(NavigationRoutes.EDIT_TRANSACTION,
                 deepLinks = listOf(navDeepLink { uriPattern = NavigationRoutes.DEEP_LINK_TRANSACTION })
-            ) {
+            ) { backStackEntry ->
+                // Get the new category ID from SavedStateHandle if returning from category creation
+                val newCategoryId = backStackEntry.savedStateHandle.get<String>(NavigationRoutes.NEW_CATEGORY_ID_KEY)
+                
                 AddEditTransactionScreen(
                     onNavigateBack = {
                         navController.popBackStack()
-                    }
+                    },
+                    onNavigateToAddCategory = {
+                        navController.navigate(NavigationRoutes.ADD_CATEGORY_FROM_TRANSACTION)
+                    },
+                    newCategoryId = newCategoryId
                 )
             }
 
@@ -162,6 +176,23 @@ fun MainNavigation(
             composable(NavigationRoutes.ADD_CATEGORY) {
                 AddEditCategoryScreen(
                     onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            
+            // Add category from transaction screen - returns result to transaction screen
+            composable(NavigationRoutes.ADD_CATEGORY_FROM_TRANSACTION) {
+                AddEditCategoryScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onCategoryCreated = { categoryId ->
+                        // Set the result for the previous screen (transaction screen)
+                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                            NavigationRoutes.NEW_CATEGORY_ID_KEY,
+                            categoryId
+                        )
                         navController.popBackStack()
                     }
                 )

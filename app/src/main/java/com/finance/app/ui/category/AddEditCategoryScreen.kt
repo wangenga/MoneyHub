@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun AddEditCategoryScreen(
     onNavigateBack: () -> Unit,
+    onCategoryCreated: ((String) -> Unit)? = null,
     viewModel: AddEditCategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,6 +42,13 @@ fun AddEditCategoryScreen(
     LaunchedEffect(saveState) {
         if (saveState is SaveState.Success) {
             onNavigateBack()
+        }
+    }
+    
+    // Handle category created event (for returning result to transaction screen)
+    LaunchedEffect(Unit) {
+        viewModel.categoryCreatedEvent.collect { categoryId ->
+            onCategoryCreated?.invoke(categoryId)
         }
     }
 
@@ -229,6 +237,8 @@ private fun ColorSelector(
     selectedColor: String,
     onClick: () -> Unit
 ) {
+    val colorName = namedColors.find { it.hex == selectedColor }?.name ?: "Custom"
+    
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Color",
@@ -263,7 +273,7 @@ private fun ColorSelector(
                             .background(parseColor(selectedColor))
                     )
                     Text(
-                        text = selectedColor,
+                        text = colorName,
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -339,35 +349,59 @@ private fun IconSelector(
     }
 }
 
+/**
+ * Data class for named colors
+ */
+private data class NamedColor(val name: String, val hex: String)
+
+/**
+ * List of named colors without duplicates
+ */
+private val namedColors = listOf(
+    NamedColor("Coral Red", "#FF6B6B"),
+    NamedColor("Turquoise", "#4ECDC4"),
+    NamedColor("Sky Blue", "#45B7D1"),
+    NamedColor("Light Salmon", "#FFA07A"),
+    NamedColor("Mint Green", "#98D8C8"),
+    NamedColor("Pink", "#F06292"),
+    NamedColor("Purple", "#BA68C8"),
+    NamedColor("Deep Purple", "#9575CD"),
+    NamedColor("Indigo", "#7986CB"),
+    NamedColor("Blue", "#64B5F6"),
+    NamedColor("Light Blue", "#4FC3F7"),
+    NamedColor("Cyan", "#4DD0E1"),
+    NamedColor("Teal", "#4DB6AC"),
+    NamedColor("Green", "#81C784"),
+    NamedColor("Light Green", "#AED581"),
+    NamedColor("Lime", "#DCE775"),
+    NamedColor("Amber", "#FFD54F"),
+    NamedColor("Orange", "#FFB74D"),
+    NamedColor("Deep Orange", "#FF8A65"),
+    NamedColor("Brown", "#A1887F")
+)
+
 @Composable
 private fun ColorPickerDialog(
     selectedColor: String,
     onColorSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val colors = listOf(
-        "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
-        "#F06292", "#BA68C8", "#9575CD", "#7986CB", "#64B5F6",
-        "#4FC3F7", "#4DD0E1", "#4DB6AC", "#81C784", "#AED581",
-        "#DCE775", "#FFD54F", "#FFB74D", "#FF8A65", "#A1887F",
-        "#E57373", "#F06292", "#BA68C8", "#9575CD", "#7986CB"
-    )
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Color") },
         text = {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
+                columns = GridCells.Fixed(4),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(colors) { color ->
+                items(namedColors) { namedColor ->
                     ColorItem(
-                        color = color,
-                        isSelected = color == selectedColor,
-                        onClick = { onColorSelected(color) }
+                        color = namedColor.hex,
+                        colorName = namedColor.name,
+                        isSelected = namedColor.hex == selectedColor,
+                        onClick = { onColorSelected(namedColor.hex) }
                     )
                 }
             }
@@ -383,30 +417,42 @@ private fun ColorPickerDialog(
 @Composable
 private fun ColorItem(
     color: String,
+    colorName: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(parseColor(color))
-            .border(
-                width = if (isSelected) 3.dp else 0.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CircleShape
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        if (isSelected) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Selected",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(parseColor(color))
+                .border(
+                    width = if (isSelected) 3.dp else 0.dp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = CircleShape
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
+        Text(
+            text = colorName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
     }
 }
 

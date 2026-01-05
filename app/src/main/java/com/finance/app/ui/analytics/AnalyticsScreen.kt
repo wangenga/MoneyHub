@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -55,10 +54,8 @@ import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
-import com.patrykandpatrick.vico.core.axis.AxisItemPlacer
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
-import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProducer
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.IncomeExpenseData
 import com.finance.app.domain.model.TrendPoint
@@ -108,11 +105,22 @@ fun AnalyticsScreen(
                 CircularProgressIndicator()
             }
         } else if (!uiState.hasData) {
-            EmptyAnalyticsState(
+            // Show time period selector even when there's no data
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-            )
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                DateRangeSelector(
+                    selectedPreset = uiState.selectedPreset,
+                    onPresetSelected = viewModel::setDateRangePreset
+                )
+                EmptyAnalyticsState(
+                    modifier = Modifier.weight(1f)
+                )
+            }
         } else {
             AnalyticsContent(
                 uiState = uiState,
@@ -176,9 +184,9 @@ private fun AnalyticsContent(
 }
 
 /**
- * Date range selector with preset options
+ * Date range selector with preset options - all options visible
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun DateRangeSelector(
     selectedPreset: DateRangePreset,
@@ -210,10 +218,12 @@ private fun DateRangeSelector(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Use FlowRow to wrap chips and show all options
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(DateRangePreset.values()) { preset ->
+                DateRangePreset.values().forEach { preset ->
                     FilterChip(
                         selected = selectedPreset == preset,
                         onClick = { onPresetSelected(preset) },

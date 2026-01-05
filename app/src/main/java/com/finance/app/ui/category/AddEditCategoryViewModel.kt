@@ -29,6 +29,10 @@ class AddEditCategoryViewModel @Inject constructor(
 
     private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
     val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
+    
+    // Event for when a new category is created (emits the category ID)
+    private val _categoryCreatedEvent = MutableSharedFlow<String>()
+    val categoryCreatedEvent: SharedFlow<String> = _categoryCreatedEvent.asSharedFlow()
 
     init {
         if (categoryId != null) {
@@ -80,9 +84,11 @@ class AddEditCategoryViewModel @Inject constructor(
 
             val currentUser = authRepository.getCurrentUser().firstOrNull()
             val userId = currentUser?.id
+            
+            val newCategoryId = categoryId ?: UUID.randomUUID().toString()
 
             val category = Category(
-                id = categoryId ?: UUID.randomUUID().toString(),
+                id = newCategoryId,
                 userId = userId,
                 name = _uiState.value.name.trim(),
                 color = _uiState.value.color,
@@ -101,6 +107,10 @@ class AddEditCategoryViewModel @Inject constructor(
             result
                 .onSuccess {
                     _saveState.value = SaveState.Success
+                    // Emit the created category ID for new categories
+                    if (categoryId == null) {
+                        _categoryCreatedEvent.emit(newCategoryId)
+                    }
                 }
                 .onFailure { e ->
                     _saveState.value = SaveState.Error(
