@@ -24,7 +24,11 @@ object NavigationRoutes {
     // Category routes
     const val CATEGORY_MANAGEMENT = "category_management"
     const val ADD_CATEGORY = "add_category"
+    const val ADD_CATEGORY_FROM_TRANSACTION = "add_category_from_transaction"
     const val EDIT_CATEGORY = "edit_category/{categoryId}"
+    
+    // Navigation result keys
+    const val NEW_CATEGORY_ID_KEY = "new_category_id"
     
     // Onboarding
     const val ONBOARDING = "onboarding"

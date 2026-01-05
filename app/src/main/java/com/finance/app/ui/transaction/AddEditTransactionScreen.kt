@@ -33,6 +33,8 @@ import java.util.*
 @Composable
 fun AddEditTransactionScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToAddCategory: () -> Unit = {},
+    newCategoryId: String? = null,
     viewModel: AddEditTransactionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -46,6 +48,13 @@ fun AddEditTransactionScreen(
     LaunchedEffect(saveState) {
         if (saveState is AsyncState.Success) {
             onNavigateBack()
+        }
+    }
+    
+    // Auto-select newly created category when returning from AddEditCategoryScreen
+    LaunchedEffect(newCategoryId) {
+        if (newCategoryId != null && newCategoryId.isNotEmpty()) {
+            viewModel.updateCategory(newCategoryId)
         }
     }
 
@@ -232,6 +241,10 @@ fun AddEditTransactionScreen(
             onCategorySelected = { categoryId ->
                 viewModel.updateCategory(categoryId)
                 showCategorySelector = false
+            },
+            onAddNewCategory = {
+                showCategorySelector = false
+                onNavigateToAddCategory()
             },
             onDismiss = { showCategorySelector = false }
         )

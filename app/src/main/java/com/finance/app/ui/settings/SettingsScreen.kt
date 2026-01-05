@@ -31,15 +31,24 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onLogout: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val userFeedbackManager = remember(snackbarHostState, scope) {
         UserFeedbackManager(snackbarHostState, scope)
+    }
+    
+    // Observe logout event for navigation
+    LaunchedEffect(Unit) {
+        viewModel.logoutEvent.collect {
+            onLogout()
+        }
     }
     
     Scaffold(
@@ -141,6 +150,21 @@ fun SettingsScreen(
                 }
             }
             
+            // Account Section
+            item {
+                SettingsSection(title = "Account") {
+                    // Logout Button
+                    SettingsActionItem(
+                        icon = Icons.Default.ExitToApp,
+                        title = "Log Out",
+                        subtitle = "Sign out of your account",
+                        onClick = { showLogoutDialog = true },
+                        isLoading = uiState.isLoggingOut,
+                        enabled = !uiState.isLoggingOut
+                    )
+                }
+            }
+            
             // About Section
             item {
                 SettingsSection(title = "About") {
@@ -189,6 +213,17 @@ fun SettingsScreen(
         )
     }
     
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        LogoutConfirmationDialog(
+            onConfirm = {
+                showLogoutDialog = false
+                viewModel.logout()
+            },
+            onDismiss = { showLogoutDialog = false }
+        )
+    }
+    
     // Handle biometric authentication state
     LaunchedEffect(uiState.biometricAuthState) {
         when (uiState.biometricAuthState) {
@@ -230,6 +265,17 @@ fun SettingsScreen(
         LaunchedEffect(error) {
             userFeedbackManager.showError(error)
             viewModel.clearSyncError()
+        }
+    }
+    
+    // Handle logout errors
+    uiState.logoutError?.let { error ->
+        LaunchedEffect(error) {
+            userFeedbackManager.showRetryableError(
+                message = "Logout failed: $error",
+                onRetry = { viewModel.logout() }
+            )
+            viewModel.clearLogoutError()
         }
     }
 }
@@ -594,4 +640,49 @@ private fun formatSyncTimestamp(timestamp: Long): String {
             formatter.format(Date(timestamp))
         }
     }
+}
+
+/**
+ * Logout confirmation dialog with accessibility support
+ */
+@Composable
+private fun LogoutConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            FinanceText(
+                text = "Log Out",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            FinanceText(
+                text = "Are you sure you want to log out?",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            FinanceTextButton(
+                onClick = onConfirm,
+                modifier = Modifier.semantics {
+                    contentDescription = "Confirm logout"
+                }
+            ) {
+                ButtonText("Log Out")
+            }
+        },
+        dismissButton = {
+            FinanceTextButton(
+                onClick = onDismiss,
+                modifier = Modifier.semantics {
+                    contentDescription = "Cancel logout"
+                }
+            ) {
+                ButtonText("Cancel")
+            }
+        }
+    )
 }

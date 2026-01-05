@@ -3,13 +3,17 @@ package com.finance.app.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.finance.app.domain.biometric.BiometricAuthenticator
+import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.SettingsRepository
 import com.finance.app.domain.repository.SyncState
 import com.finance.app.domain.repository.SyncRepository
 import com.finance.app.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -22,11 +26,15 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val biometricAuthenticator: BiometricAuthenticator,
-    private val syncRepository: SyncRepository
+    private val syncRepository: SyncRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _logoutEvent = MutableSharedFlow<Unit>()
+    val logoutEvent: SharedFlow<Unit> = _logoutEvent.asSharedFlow()
 
     init {
         loadSettings()
@@ -142,6 +150,33 @@ class SettingsViewModel @Inject constructor(
     fun clearSyncError() {
         _uiState.value = _uiState.value.copy(syncError = null)
     }
+
+    /**
+     * Logs out the current user from the application.
+     * Signs out from Firebase Auth and clears local session data.
+     */
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoggingOut = true, logoutError = null)
+            try {
+                authRepository.signOut()
+                _logoutEvent.emit(Unit)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    logoutError = e.message ?: "Failed to log out"
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoggingOut = false)
+            }
+        }
+    }
+
+    /**
+     * Clears the logout error state
+     */
+    fun clearLogoutError() {
+        _uiState.value = _uiState.value.copy(logoutError = null)
+    }
 }
 
 /**
@@ -157,5 +192,7 @@ data class SettingsUiState(
     val syncState: SyncState = SyncState.Idle,
     val isSyncing: Boolean = false,
     val biometricAuthState: BiometricAuthState = BiometricAuthState.Idle,
-    val syncError: String? = null
+    val syncError: String? = null,
+    val isLoggingOut: Boolean = false,
+    val logoutError: String? = null
 )

@@ -108,7 +108,14 @@ fun AppNavigation(
         
         // Main app flow
         composable(NavigationRoutes.MAIN_GRAPH) {
-            MainNavigation()
+            MainNavigation(
+                onLogout = {
+                    // Navigate to auth graph and clear back stack
+                    navController.navigate(NavigationRoutes.AUTH_GRAPH) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

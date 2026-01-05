@@ -33,7 +33,8 @@ import com.finance.app.ui.transaction.TransactionListScreen
  */
 @Composable
 fun MainNavigation(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    onLogout: () -> Unit = {}
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -117,7 +118,9 @@ fun MainNavigation(
             }
 
             composable(NavigationRoutes.SETTINGS) {
-                SettingsScreen()
+                SettingsScreen(
+                    onLogout = onLogout
+                )
             }
 
             // Transaction screens
