@@ -46,6 +46,7 @@ class AddEditTransactionViewModel @Inject constructor(
     init {
         loadCategories()
         transactionId?.let { loadTransaction(it) }
+        startNetworkObservation()
     }
 
     override fun onNetworkStateChanged(networkState: NetworkState) {

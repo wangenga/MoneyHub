@@ -30,6 +30,7 @@ class CategoryViewModel @Inject constructor(
 
     init {
         loadCategories()
+        startNetworkObservation()
     }
 
     override fun onNetworkStateChanged(networkState: NetworkState) {

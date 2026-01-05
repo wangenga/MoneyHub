@@ -49,6 +49,7 @@ class TransactionViewModel @Inject constructor(
     init {
         loadCategories()
         loadTransactions()
+        startNetworkObservation()
     }
 
     override fun onNetworkStateChanged(networkState: NetworkState) {

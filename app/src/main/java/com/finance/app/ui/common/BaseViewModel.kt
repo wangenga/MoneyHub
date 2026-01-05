@@ -29,6 +29,13 @@ abstract class BaseViewModel(
     }
     
     init {
+        // Network state observation will be started by child classes when they're ready
+    }
+    
+    /**
+     * Starts observing network state. Should be called by child classes after initialization.
+     */
+    protected fun startNetworkObservation() {
         observeNetworkState()
     }
     
