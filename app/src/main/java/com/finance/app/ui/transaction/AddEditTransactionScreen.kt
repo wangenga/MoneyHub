@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.TransactionType
+import com.finance.app.ui.common.AsyncState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,7 +44,7 @@ fun AddEditTransactionScreen(
 
     // Handle save success
     LaunchedEffect(saveState) {
-        if (saveState is SaveState.Success) {
+        if (saveState is AsyncState.Success) {
             onNavigateBack()
         }
     }
@@ -68,16 +69,16 @@ fun AddEditTransactionScreen(
                 actions = {
                     TextButton(
                         onClick = { viewModel.saveTransaction() },
-                        enabled = saveState !is SaveState.Saving,
+                        enabled = saveState !is AsyncState.Loading,
                         modifier = Modifier.semantics {
-                            contentDescription = if (saveState is SaveState.Saving) {
+                            contentDescription = if (saveState is AsyncState.Loading) {
                                 "Saving transaction, please wait"
                             } else {
                                 "Save transaction"
                             }
                         }
                     ) {
-                        if (saveState is SaveState.Saving) {
+                        if (saveState is AsyncState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
@@ -183,7 +184,7 @@ fun AddEditTransactionScreen(
             )
 
             // Error message
-            if (saveState is SaveState.Error) {
+            if (saveState is AsyncState.Error) {
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
@@ -201,7 +202,7 @@ fun AddEditTransactionScreen(
                             tint = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = (saveState as SaveState.Error).message,
+                            text = (saveState as AsyncState.Error).message,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodyMedium
                         )

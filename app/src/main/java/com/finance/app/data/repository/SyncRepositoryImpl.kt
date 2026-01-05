@@ -12,6 +12,7 @@ import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.SyncRepository
 import com.finance.app.domain.repository.SyncState
+import com.finance.app.util.ErrorHandler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +20,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
-import kotlin.math.pow
 
 /**
- * Implementation of SyncRepository
- * Handles synchronization between local database and Firestore with conflict resolution
+ * Implementation of SyncRepository with enhanced error handling and retry logic
  */
 @Singleton
 class SyncRepositoryImpl @Inject constructor(
@@ -32,14 +30,13 @@ class SyncRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
     private val authRepository: AuthRepository,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val errorHandler: ErrorHandler
 ) : SyncRepository {
     
     companion object {
         private const val LAST_SYNC_TIMESTAMP_KEY = "last_sync_timestamp"
         private const val MAX_RETRY_ATTEMPTS = 3
-        private const val BASE_DELAY_MS = 1000L // 1 second
-        private const val MAX_DELAY_MS = 30000L // 30 seconds
     }
     
     private val _syncStatus = MutableStateFlow<SyncState>(SyncState.Idle)
@@ -70,7 +67,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
     
     /**
-     * Executes sync operation with exponential backoff retry strategy
+     * Executes sync operation with intelligent retry strategy
      */
     private suspend fun executeWithRetry(
         operation: suspend () -> Result<Unit>
@@ -99,17 +96,21 @@ class SyncRepositoryImpl @Inject constructor(
                 lastException = e
             }
             
-            // Apply exponential backoff delay before retry
+            // Check if error is recoverable before retrying
+            if (lastException != null && !errorHandler.isRecoverableError(lastException!!)) {
+                break
+            }
+            
+            // Apply intelligent delay before retry
             if (attempt < MAX_RETRY_ATTEMPTS - 1) {
-                val delayMs = min(
-                    BASE_DELAY_MS * (2.0.pow(attempt.toDouble())).toLong(),
-                    MAX_DELAY_MS
-                )
+                val delayMs = errorHandler.getRetryDelay(lastException!!, attempt)
                 delay(delayMs)
             }
         }
         
-        val errorMessage = lastException?.message ?: "Sync failed after $MAX_RETRY_ATTEMPTS attempts"
+        val errorMessage = lastException?.let { errorHandler.getErrorMessage(it) }
+            ?: "Sync failed after $MAX_RETRY_ATTEMPTS attempts"
+        
         _syncStatus.value = SyncState.Error(errorMessage, MAX_RETRY_ATTEMPTS)
         return Result.failure(lastException ?: Exception(errorMessage))
     }

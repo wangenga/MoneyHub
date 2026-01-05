@@ -1,4 +1,36 @@
 <resources>
     <string name="app_name">Personal Finance</string>
     <string name="default_web_client_id">132899795794-efhvrph1o16om8fioqm8ug7i1chkp41h.apps.googleusercontent.com</string>
+    
+    <!-- Error Messages -->
+    <string name="error_no_internet">No internet connection. Please check your network settings.</string>
+    <string name="error_network_timeout">Request timed out. Please try again.</string>
+    <string name="error_network_general">Network error occurred. Please try again.</string>
+    <string name="error_firebase_general">Service temporarily unavailable. Please try again later.</string>
+    <string name="error_database">Database error occurred. Please restart the app.</string>
+    <string name="error_validation">Invalid input. Please check your data.</string>
+    <string name="error_unknown">An unexpected error occurred. Please try again.</string>
+    
+    <!-- Authentication Errors -->
+    <string name="error_invalid_email">Please enter a valid email address.</string>
+    <string name="error_wrong_password">Incorrect password. Please try again.</string>
+    <string name="error_user_not_found">No account found with this email address.</string>
+    <string name="error_user_disabled">This account has been disabled. Please contact support.</string>
+    <string name="error_too_many_requests">Too many failed attempts. Please try again later.</string>
+    <string name="error_email_in_use">An account with this email already exists.</string>
+    <string name="error_weak_password">Password should be at least 6 characters long.</string>
+    <string name="error_auth_general">Authentication failed. Please try again.</string>
+    
+    <!-- Firestore Errors -->
+    <string name="error_permission_denied">Access denied. Please sign in again.</string>
+    <string name="error_service_unavailable">Service is temporarily unavailable. Please try again later.</string>
+    <string name="error_authentication_required">Please sign in to continue.</string>
+    <string name="error_sync_failed">Sync failed. Your data will be synced when connection is restored.</string>
+    
+    <!-- User Feedback Messages -->
+    <string name="message_offline">You\'re offline. Changes will sync when connection is restored.</string>
+    <string name="message_sync_success">Data synced successfully</string>
+    <string name="message_retry_available">Tap to retry</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_dismiss">Dismiss</string>
 </resources>

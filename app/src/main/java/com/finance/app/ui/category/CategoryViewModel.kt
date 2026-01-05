@@ -1,75 +1,96 @@
 package com.finance.app.ui.category
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.repository.CategoryRepository
+import com.finance.app.ui.common.AsyncState
+import com.finance.app.ui.common.BaseViewModel
+import com.finance.app.ui.common.NetworkState
+import com.finance.app.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel for category management screen
+ * ViewModel for category management screen with enhanced error handling
  */
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository
-) : ViewModel() {
+) : BaseViewModel() {
 
-    private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
-    val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<UiState<List<Category>>>(UiState.Loading)
+    val uiState: StateFlow<UiState<List<Category>>> = _uiState.asStateFlow()
 
-    private val _deleteState = MutableStateFlow<DeleteState>(DeleteState.Idle)
-    val deleteState: StateFlow<DeleteState> = _deleteState.asStateFlow()
+    private val _deleteState = MutableStateFlow<AsyncState>(AsyncState.Idle)
+    val deleteState: StateFlow<AsyncState> = _deleteState.asStateFlow()
 
     init {
         loadCategories()
     }
 
-    private fun loadCategories() {
-        viewModelScope.launch {
-            categoryRepository.getAllCategories()
-                .catch { e ->
-                    _uiState.value = CategoryUiState.Error(
-                        e.message ?: "Failed to load categories"
-                    )
-                }
-                .collect { categories ->
-                    _uiState.value = if (categories.isEmpty()) {
-                        CategoryUiState.Empty
-                    } else {
-                        CategoryUiState.Success(categories)
-                    }
-                }
+    override fun onNetworkStateChanged(networkState: NetworkState) {
+        // Retry loading if we just came back online and have an error
+        if (networkState.isConnected && _uiState.value.isError) {
+            loadCategories()
         }
+    }
+
+    private fun loadCategories() {
+        _uiState.value = UiState.Loading
+        
+        executeWithErrorHandling(
+            operation = {
+                categoryRepository.getAllCategories()
+                    .collect { categories ->
+                        _uiState.value = UiState.Success(categories)
+                    }
+            },
+            onError = { errorMessage ->
+                _uiState.value = createRetryableError(errorMessage) {
+                    loadCategories()
+                }
+            }
+        )
     }
 
     fun deleteCategory(categoryId: String) {
-        viewModelScope.launch {
-            _deleteState.value = DeleteState.Deleting
-            categoryRepository.deleteCategory(categoryId)
-                .onSuccess {
-                    _deleteState.value = DeleteState.Success
-                    // Reset delete state after a short delay
-                    kotlinx.coroutines.delay(1000)
-                    _deleteState.value = DeleteState.Idle
+        _deleteState.value = AsyncState.Loading
+        
+        executeWithResult(
+            operation = { categoryRepository.deleteCategory(categoryId) },
+            onSuccess = {
+                _deleteState.value = AsyncState.Success
+                // Reset delete state after a short delay
+                executeWithErrorHandling(
+                    operation = {
+                        kotlinx.coroutines.delay(2000)
+                        _deleteState.value = AsyncState.Idle
+                    }
+                )
+            },
+            onError = { errorMessage, isRetryable ->
+                _deleteState.value = if (isRetryable) {
+                    createRetryableAsyncError(errorMessage) {
+                        deleteCategory(categoryId)
+                    }
+                } else {
+                    AsyncState.Error(errorMessage, false)
                 }
-                .onFailure { e ->
-                    _deleteState.value = DeleteState.Error(
-                        e.message ?: "Failed to delete category"
-                    )
-                }
-        }
+            }
+        )
     }
 
     fun clearDeleteError() {
-        _deleteState.value = DeleteState.Idle
+        _deleteState.value = AsyncState.Idle
+    }
+
+    fun retry() {
+        loadCategories()
     }
 }
 
 /**
- * UI state for category list screen
+ * UI state for category list screen - kept for backward compatibility
  */
 sealed class CategoryUiState {
     object Loading : CategoryUiState()
@@ -79,7 +100,7 @@ sealed class CategoryUiState {
 }
 
 /**
- * State for delete operations
+ * State for delete operations - kept for backward compatibility
  */
 sealed class DeleteState {
     object Idle : DeleteState()

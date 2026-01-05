@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
+import com.finance.app.ui.common.AsyncState
+import com.finance.app.ui.common.UiState
 
 /**
  * Category management screen to display and manage all categories
@@ -44,11 +46,12 @@ fun CategoryManagementScreen(
     
     LaunchedEffect(deleteState) {
         when (deleteState) {
-            is DeleteState.Success -> {
+            is AsyncState.Success -> {
                 snackbarHostState.showSnackbar("Category deleted successfully")
             }
-            is DeleteState.Error -> {
-                snackbarHostState.showSnackbar((deleteState as DeleteState.Error).message)
+            is AsyncState.Error -> {
+                val errorState = deleteState as AsyncState.Error
+                snackbarHostState.showSnackbar(errorState.message)
                 viewModel.clearDeleteError()
             }
             else -> {}
@@ -91,28 +94,29 @@ fun CategoryManagementScreen(
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
-                is CategoryUiState.Loading -> {
+                is UiState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                is CategoryUiState.Empty -> {
-                    EmptyCategoriesView(
-                        modifier = Modifier.align(Alignment.Center),
-                        onAddCategory = onAddCategory
-                    )
+                is UiState.Success -> {
+                    if (state.data.isEmpty()) {
+                        EmptyCategoriesView(
+                            modifier = Modifier.align(Alignment.Center),
+                            onAddCategory = onAddCategory
+                        )
+                    } else {
+                        CategoryList(
+                            categories = state.data,
+                            onCategoryClick = onEditCategory,
+                            onDeleteCategory = { category ->
+                                categoryToDelete = category
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
                 }
-                is CategoryUiState.Success -> {
-                    CategoryList(
-                        categories = state.categories,
-                        onCategoryClick = onEditCategory,
-                        onDeleteCategory = { category ->
-                            categoryToDelete = category
-                            showDeleteDialog = true
-                        }
-                    )
-                }
-                is CategoryUiState.Error -> {
+                is UiState.Error -> {
                     ErrorView(
                         message = state.message,
                         modifier = Modifier.align(Alignment.Center)

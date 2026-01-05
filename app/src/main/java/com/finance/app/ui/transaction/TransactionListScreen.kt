@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -26,12 +27,17 @@ import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.TransactionType
 import com.finance.app.ui.accessibility.createTransactionContentDescription
 import com.finance.app.ui.accessibility.AccessibilityAnnouncement
+import com.finance.app.ui.common.UiState
+import com.finance.app.ui.common.UserFeedbackManager
+import com.finance.app.ui.components.ErrorDisplay
+import com.finance.app.ui.components.OfflineIndicator
 import com.finance.app.util.CurrencyUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Transaction list screen with filtering and FAB for quick add
+ * Transaction list screen with enhanced error handling and offline support
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,39 +49,59 @@ fun TransactionListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val filterState by viewModel.filterState.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val networkState by viewModel.networkState.collectAsState()
+    val globalError by viewModel.globalError.collectAsState()
     
     var showFilterDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val userFeedbackManager = remember(snackbarHostState, scope) {
+        UserFeedbackManager(snackbarHostState, scope)
+    }
+
+    // Handle global errors
+    LaunchedEffect(globalError) {
+        globalError?.let { error ->
+            userFeedbackManager.showError(error)
+            viewModel.clearGlobalError()
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Transactions") },
-                actions = {
-                    IconButton(
-                        onClick = { showFilterDialog = true },
-                        modifier = Modifier.semantics {
-                            contentDescription = if (filterState.hasActiveFilters()) {
-                                "Filter transactions, filters currently active"
-                            } else {
-                                "Filter transactions"
-                            }
-                        }
-                    ) {
-                        Badge(
-                            containerColor = if (filterState.hasActiveFilters()) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                Color.Transparent
+            Column {
+                TopAppBar(
+                    title = { Text("Transactions") },
+                    actions = {
+                        IconButton(
+                            onClick = { showFilterDialog = true },
+                            modifier = Modifier.semantics {
+                                contentDescription = if (filterState.hasActiveFilters()) {
+                                    "Filter transactions, filters currently active"
+                                } else {
+                                    "Filter transactions"
+                                }
                             }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = null // IconButton already has content description
-                            )
+                            Badge(
+                                containerColor = if (filterState.hasActiveFilters()) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    Color.Transparent
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = null // IconButton already has content description
+                                )
+                            }
                         }
                     }
-                }
-            )
+                )
+                
+                // Offline indicator
+                OfflineIndicator(networkState = networkState)
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -90,7 +116,8 @@ fun TransactionListScreen(
                     contentDescription = null // FAB already has content description
                 )
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -98,29 +125,31 @@ fun TransactionListScreen(
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
-                is TransactionListUiState.Loading -> {
+                is UiState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                is TransactionListUiState.Empty -> {
-                    EmptyTransactionsView(
-                        modifier = Modifier.align(Alignment.Center),
-                        hasFilters = filterState.hasActiveFilters(),
-                        onClearFilters = { viewModel.clearFilters() }
-                    )
+                is UiState.Success -> {
+                    if (state.data.isEmpty) {
+                        EmptyTransactionsView(
+                            modifier = Modifier.align(Alignment.Center),
+                            hasFilters = filterState.hasActiveFilters(),
+                            onClearFilters = { viewModel.clearFilters() }
+                        )
+                    } else {
+                        TransactionList(
+                            transactions = state.data.transactions,
+                            categoriesMap = state.data.categoriesMap,
+                            onTransactionClick = onEditTransaction,
+                            onDeleteTransaction = { viewModel.deleteTransaction(it) },
+                            userFeedbackManager = userFeedbackManager
+                        )
+                    }
                 }
-                is TransactionListUiState.Success -> {
-                    TransactionList(
-                        transactions = state.transactions,
-                        categoriesMap = state.categoriesMap,
-                        onTransactionClick = onEditTransaction,
-                        onDeleteTransaction = { viewModel.deleteTransaction(it) }
-                    )
-                }
-                is TransactionListUiState.Error -> {
-                    ErrorView(
-                        message = state.message,
+                is UiState.Error -> {
+                    ErrorDisplay(
+                        error = state,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -150,7 +179,8 @@ private fun TransactionList(
     transactions: List<Transaction>,
     categoriesMap: Map<String, Category>,
     onTransactionClick: (String) -> Unit,
-    onDeleteTransaction: (String) -> Unit
+    onDeleteTransaction: (String) -> Unit,
+    userFeedbackManager: UserFeedbackManager
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -165,7 +195,10 @@ private fun TransactionList(
                 transaction = transaction,
                 category = categoriesMap[transaction.categoryId],
                 onClick = { onTransactionClick(transaction.id) },
-                onDelete = { onDeleteTransaction(transaction.id) }
+                onDelete = { 
+                    onDeleteTransaction(transaction.id)
+                    userFeedbackManager.showSuccess("Transaction deleted")
+                }
             )
         }
     }

@@ -1,7 +1,6 @@
 package com.finance.app.ui.transaction
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.SyncStatus
@@ -10,14 +9,16 @@ import com.finance.app.domain.model.TransactionType
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.domain.repository.TransactionRepository
+import com.finance.app.ui.common.AsyncState
+import com.finance.app.ui.common.BaseViewModel
+import com.finance.app.ui.common.NetworkState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
 /**
- * ViewModel for add/edit transaction screen
+ * ViewModel for add/edit transaction screen with enhanced error handling
  */
 @HiltViewModel
 class AddEditTransactionViewModel @Inject constructor(
@@ -25,7 +26,7 @@ class AddEditTransactionViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository,
     savedStateHandle: SavedStateHandle
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val transactionId: String? = savedStateHandle.get<String>("transactionId")
 
@@ -35,47 +36,59 @@ class AddEditTransactionViewModel @Inject constructor(
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
-    private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
-    val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
+    private val _saveState = MutableStateFlow<AsyncState>(AsyncState.Idle)
+    val saveState: StateFlow<AsyncState> = _saveState.asStateFlow()
 
     init {
         loadCategories()
         transactionId?.let { loadTransaction(it) }
     }
 
-    private fun loadCategories() {
-        viewModelScope.launch {
-            categoryRepository.getAllCategories()
-                .catch { e ->
-                    android.util.Log.e("AddEditTransactionVM", "Error loading categories", e)
-                }
-                .collect { categories ->
-                    _categories.value = categories
-                }
+    override fun onNetworkStateChanged(networkState: NetworkState) {
+        // Show offline message if trying to save while offline
+        if (networkState.isDisconnected && _saveState.value.isLoading) {
+            _saveState.value = AsyncState.Error(
+                "You're offline. Transaction will be saved locally and synced when connection is restored.",
+                false
+            )
         }
     }
 
+    private fun loadCategories() {
+        executeWithErrorHandling(
+            operation = {
+                categoryRepository.getAllCategories()
+                    .collect { categories ->
+                        _categories.value = categories
+                    }
+            },
+            onError = { errorMessage ->
+                android.util.Log.e("AddEditTransactionVM", "Error loading categories: $errorMessage")
+            }
+        )
+    }
+
     private fun loadTransaction(id: String) {
-        viewModelScope.launch {
-            transactionRepository.getTransactionById(id)
-                .catch { e ->
-                    _saveState.value = SaveState.Error(
-                        e.message ?: "Failed to load transaction"
-                    )
-                }
-                .filterNotNull()
-                .collect { transaction ->
-                    _uiState.value = AddEditTransactionUiState(
-                        amount = transaction.amount.toString(),
-                        categoryId = transaction.categoryId,
-                        date = transaction.date,
-                        type = transaction.type,
-                        paymentMethod = transaction.paymentMethod ?: "",
-                        notes = transaction.notes ?: "",
-                        isEditMode = true
-                    )
-                }
-        }
+        executeWithErrorHandling(
+            operation = {
+                transactionRepository.getTransactionById(id)
+                    .filterNotNull()
+                    .collect { transaction ->
+                        _uiState.value = AddEditTransactionUiState(
+                            amount = transaction.amount.toString(),
+                            categoryId = transaction.categoryId,
+                            date = transaction.date,
+                            type = transaction.type,
+                            paymentMethod = transaction.paymentMethod ?: "",
+                            notes = transaction.notes ?: "",
+                            isEditMode = true
+                        )
+                    }
+            },
+            onError = { errorMessage ->
+                _saveState.value = AsyncState.Error(errorMessage, false)
+            }
+        )
     }
 
     fun updateAmount(amount: String) {
@@ -123,50 +136,51 @@ class AddEditTransactionViewModel @Inject constructor(
             return
         }
 
-        _saveState.value = SaveState.Saving
+        _saveState.value = AsyncState.Loading
 
-        viewModelScope.launch {
-            authRepository.getCurrentUser()
-                .firstOrNull()
-                ?.let { user ->
-                    val now = System.currentTimeMillis()
-                    val transaction = Transaction(
-                        id = transactionId ?: UUID.randomUUID().toString(),
-                        userId = user.id,
-                        type = state.type,
-                        amount = amountValue,
-                        categoryId = state.categoryId,
-                        date = state.date,
-                        paymentMethod = state.paymentMethod.ifBlank { null },
-                        notes = state.notes.ifBlank { null },
-                        createdAt = if (transactionId == null) now else 0, // Will be preserved if editing
-                        updatedAt = now,
-                        syncStatus = SyncStatus.PENDING
-                    )
+        executeWithResult(
+            operation = {
+                val user = authRepository.getCurrentUser().firstOrNull()
+                    ?: return@executeWithResult Result.failure(Exception("User not authenticated"))
+                
+                val now = System.currentTimeMillis()
+                val transaction = Transaction(
+                    id = transactionId ?: UUID.randomUUID().toString(),
+                    userId = user.id,
+                    type = state.type,
+                    amount = amountValue,
+                    categoryId = state.categoryId,
+                    date = state.date,
+                    paymentMethod = state.paymentMethod.ifBlank { null },
+                    notes = state.notes.ifBlank { null },
+                    createdAt = if (transactionId == null) now else 0, // Will be preserved if editing
+                    updatedAt = now,
+                    syncStatus = SyncStatus.PENDING
+                )
 
-                    val result = if (transactionId == null) {
-                        transactionRepository.insertTransaction(transaction)
-                    } else {
-                        transactionRepository.updateTransaction(transaction)
+                if (transactionId == null) {
+                    transactionRepository.insertTransaction(transaction)
+                } else {
+                    transactionRepository.updateTransaction(transaction)
+                }
+            },
+            onSuccess = {
+                _saveState.value = AsyncState.Success
+            },
+            onError = { errorMessage, isRetryable ->
+                _saveState.value = if (isRetryable) {
+                    createRetryableAsyncError(errorMessage) {
+                        saveTransaction()
                     }
-
-                    result
-                        .onSuccess {
-                            _saveState.value = SaveState.Success
-                        }
-                        .onFailure { e ->
-                            _saveState.value = SaveState.Error(
-                                e.message ?: "Failed to save transaction"
-                            )
-                        }
-                } ?: run {
-                _saveState.value = SaveState.Error("User not authenticated")
+                } else {
+                    AsyncState.Error(errorMessage, false)
+                }
             }
-        }
+        )
     }
 
     fun resetSaveState() {
-        _saveState.value = SaveState.Idle
+        _saveState.value = AsyncState.Idle
     }
 }
 

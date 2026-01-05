@@ -18,13 +18,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.repository.SyncState
+import com.finance.app.ui.common.UserFeedbackManager
 import com.finance.app.ui.components.*
 import com.finance.app.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Settings screen composable with all settings options and accessibility support
+ * Settings screen composable with enhanced error handling and user feedback
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,16 +36,24 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     var showThemeDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val userFeedbackManager = remember(snackbarHostState, scope) {
+        UserFeedbackManager(snackbarHostState, scope)
+    }
     
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        FinanceTopAppBar(
-            title = "Settings"
-        )
-        
+    Scaffold(
+        topBar = {
+            FinanceTopAppBar(
+                title = "Settings"
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -152,6 +162,7 @@ fun SettingsScreen(
             onThemeSelected = { theme ->
                 viewModel.setThemeMode(theme)
                 showThemeDialog = false
+                userFeedbackManager.showSuccess("Theme changed to ${theme.name.lowercase()}")
             },
             onDismiss = { showThemeDialog = false }
         )
@@ -161,11 +172,33 @@ fun SettingsScreen(
     LaunchedEffect(uiState.biometricAuthState) {
         when (uiState.biometricAuthState) {
             is BiometricAuthState.Success -> {
+                userFeedbackManager.showSuccess("Biometric authentication enabled")
                 viewModel.clearBiometricAuthState()
             }
             is BiometricAuthState.Error -> {
-                // In a real app, show a Snackbar here
+                val errorState = uiState.biometricAuthState as BiometricAuthState.Error
+                userFeedbackManager.showError(
+                    message = "Biometric authentication failed: ${errorState.message}",
+                    actionLabel = "Retry",
+                    onAction = { viewModel.setBiometricEnabled(true) }
+                )
                 viewModel.clearBiometricAuthState()
+            }
+            else -> { /* Do nothing */ }
+        }
+    }
+    
+    // Handle sync state changes
+    LaunchedEffect(uiState.syncState) {
+        when (val syncState = uiState.syncState) {
+            is SyncState.Success -> {
+                userFeedbackManager.showSuccess("Data synced successfully")
+            }
+            is SyncState.Error -> {
+                userFeedbackManager.showRetryableError(
+                    message = "Sync failed: ${syncState.message}",
+                    onRetry = { viewModel.triggerManualSync() }
+                )
             }
             else -> { /* Do nothing */ }
         }
@@ -174,7 +207,7 @@ fun SettingsScreen(
     // Handle sync errors
     uiState.syncError?.let { error ->
         LaunchedEffect(error) {
-            // In a real app, show a Snackbar here
+            userFeedbackManager.showError(error)
             viewModel.clearSyncError()
         }
     }
