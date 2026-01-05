@@ -34,7 +34,7 @@ object IconCache {
         
         return iconCache.getOrPut(key) {
             CachedIcon(
-                displayText = iconName.firstOrNull()?.toString()?.uppercase() ?: "?",
+                displayText = iconName,
                 colorInt = parseColorSafe(color).toArgb(),
                 size = size.value
             )

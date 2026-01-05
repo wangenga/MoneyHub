@@ -143,21 +143,39 @@ fun AddEditTransactionScreen(
             )
 
             // Date Picker
-            OutlinedTextField(
-                value = formatDate(uiState.date),
-                onValueChange = {},
-                label = { Text("Date") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null
-                    )
-                },
-                readOnly = true,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDatePicker = true }
-            )
+            ) {
+                OutlinedTextField(
+                    value = formatDate(uiState.date),
+                    onValueChange = {},
+                    label = { Text("Date") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Select date"
+                        )
+                    },
+                    readOnly = true,
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
 
             // Payment Method
             OutlinedTextField(
@@ -347,7 +365,7 @@ private fun CategorySelector(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = selectedCategory.iconName.firstOrNull()?.toString() ?: "?",
+                            text = selectedCategory.iconName,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyMedium
                         )

@@ -42,7 +42,7 @@ class CategoryDataSource @Inject constructor(
                 userId = userId,
                 name = "Food",
                 color = "#FF6B6B",
-                iconName = "restaurant",
+                iconName = "F",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -52,7 +52,7 @@ class CategoryDataSource @Inject constructor(
                 userId = userId,
                 name = "Rent",
                 color = "#4ECDC4",
-                iconName = "home",
+                iconName = "R",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -62,7 +62,7 @@ class CategoryDataSource @Inject constructor(
                 userId = userId,
                 name = "Transport",
                 color = "#45B7D1",
-                iconName = "directions_car",
+                iconName = "T",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -72,7 +72,7 @@ class CategoryDataSource @Inject constructor(
                 userId = userId,
                 name = "Entertainment",
                 color = "#FFA07A",
-                iconName = "movie",
+                iconName = "E",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -82,7 +82,7 @@ class CategoryDataSource @Inject constructor(
                 userId = userId,
                 name = "Utilities",
                 color = "#98D8C8",
-                iconName = "bolt",
+                iconName = "U",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime

@@ -159,7 +159,7 @@ private fun CategoryItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = category.iconName.firstOrNull()?.toString() ?: "?",
+                    text = category.iconName,
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium
                 )

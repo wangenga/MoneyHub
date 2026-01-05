@@ -38,9 +38,10 @@ fun AddEditCategoryScreen(
     var showColorPicker by remember { mutableStateOf(false) }
     var showIconSelector by remember { mutableStateOf(false) }
 
-    // Handle save success
+    // Handle save success - only navigate back if no callback is provided
+    // When callback is provided, it handles navigation
     LaunchedEffect(saveState) {
-        if (saveState is SaveState.Success) {
+        if (saveState is SaveState.Success && onCategoryCreated == null) {
             onNavigateBack()
         }
     }
@@ -216,7 +217,7 @@ private fun CategoryPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = iconName.firstOrNull()?.toString() ?: "?",
+                    text = iconName,
                     style = MaterialTheme.typography.headlineLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
@@ -295,7 +296,7 @@ private fun IconSelector(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Icon",
+            text = "Letter",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
@@ -328,21 +329,21 @@ private fun IconSelector(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = selectedIcon.firstOrNull()?.toString() ?: "?",
+                            text = selectedIcon,
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
-                        text = selectedIcon,
+                        text = "Letter: $selectedIcon",
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
                 
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Select icon"
+                    contentDescription = "Select letter"
                 )
             }
         }
@@ -463,22 +464,17 @@ private fun IconSelectorDialog(
     onIconSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val icons = listOf(
-        "restaurant", "home", "directions_car", "movie", "bolt",
-        "shopping_cart", "local_cafe", "flight", "hotel", "fitness_center",
-        "school", "work", "medical_services", "pets", "sports_soccer",
-        "music_note", "book", "phone", "computer", "games",
-        "beach_access", "park", "local_gas_station", "local_pharmacy", "local_hospital"
-    )
+    // Simple letters A-Z for category icons
+    val icons = ('A'..'Z').map { it.toString() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Icon") },
+        title = { Text("Select Letter") },
         text = {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                columns = GridCells.Fixed(5),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(icons) { icon ->
@@ -508,7 +504,7 @@ private fun IconItem(
 ) {
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(parseColor(color))
             .border(
@@ -520,7 +516,7 @@ private fun IconItem(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = iconName.firstOrNull()?.toString() ?: "?",
+            text = iconName,
             style = MaterialTheme.typography.titleLarge,
             color = Color.White,
             fontWeight = FontWeight.Bold

@@ -92,7 +92,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 userId = null,
                 name = "Food",
                 color = "#FF6B6B",
-                iconName = "restaurant",
+                iconName = "F",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -102,7 +102,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 userId = null,
                 name = "Rent",
                 color = "#4ECDC4",
-                iconName = "home",
+                iconName = "R",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -112,7 +112,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 userId = null,
                 name = "Transport",
                 color = "#45B7D1",
-                iconName = "directions_car",
+                iconName = "T",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -122,7 +122,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 userId = null,
                 name = "Entertainment",
                 color = "#FFA07A",
-                iconName = "movie",
+                iconName = "E",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -132,7 +132,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 userId = null,
                 name = "Utilities",
                 color = "#98D8C8",
-                iconName = "bolt",
+                iconName = "U",
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime

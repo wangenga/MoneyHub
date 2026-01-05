@@ -128,7 +128,7 @@ data class AddEditCategoryUiState(
     val isEditMode: Boolean = false,
     val name: String = "",
     val color: String = "#FF6B6B",
-    val iconName: String = "category",
+    val iconName: String = "A",
     val nameError: String? = null
 )
 
