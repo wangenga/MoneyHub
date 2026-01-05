@@ -24,6 +24,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.TransactionType
+import com.finance.app.ui.accessibility.createTransactionContentDescription
+import com.finance.app.ui.accessibility.AccessibilityAnnouncement
 import com.finance.app.util.CurrencyUtils
 import java.text.SimpleDateFormat
 import java.util.*
@@ -180,16 +182,13 @@ private fun TransactionItem(
     var showDeleteDialog by remember { mutableStateOf(false) }
     
     // Create comprehensive content description for the transaction item
-    val transactionDescription = buildString {
-        append("Transaction: ")
-        append("${category?.name ?: "Unknown category"}, ")
-        append("${CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type)}, ")
-        append("${formatDate(transaction.date)}")
-        if (!transaction.notes.isNullOrBlank()) {
-            append(", Note: ${transaction.notes}")
-        }
-        append(". Double tap to edit.")
-    }
+    val transactionDescription = createTransactionContentDescription(
+        category = category?.name ?: "Unknown category",
+        amount = CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type),
+        date = formatDate(transaction.date),
+        notes = transaction.notes,
+        actionHint = "Double tap to edit"
+    )
     
     Card(
         modifier = Modifier
@@ -216,7 +215,7 @@ private fun TransactionItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Category icon
+                // Category icon with minimum touch target
                 Box(
                     modifier = Modifier
                         .size(48.dp) // Minimum 48dp touch target
@@ -224,7 +223,10 @@ private fun TransactionItem(
                         .background(
                             category?.color?.let { parseColor(it) }
                                 ?: MaterialTheme.colorScheme.primaryContainer
-                        ),
+                        )
+                        .semantics {
+                            contentDescription = "Category: ${category?.name ?: "Unknown"}"
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -268,6 +270,9 @@ private fun TransactionItem(
                         Color(0xFF4CAF50)
                     } else {
                         Color(0xFFF44336)
+                    },
+                    modifier = Modifier.semantics {
+                        contentDescription = "${if (transaction.type == TransactionType.INCOME) "Income" else "Expense"}: ${CurrencyUtils.formatAmount(transaction.amount)}"
                     }
                 )
                 
@@ -293,23 +298,53 @@ private fun TransactionItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Transaction") },
-            text = { Text("Are you sure you want to delete this transaction?") },
+            title = { 
+                Text(
+                    text = "Delete Transaction",
+                    modifier = Modifier.semantics {
+                        contentDescription = "Delete transaction confirmation dialog"
+                    }
+                ) 
+            },
+            text = { 
+                Text(
+                    text = "Are you sure you want to delete this transaction?",
+                    modifier = Modifier.semantics {
+                        contentDescription = "Confirmation message: Are you sure you want to delete this transaction?"
+                    }
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onDelete()
                         showDeleteDialog = false
+                    },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Confirm delete transaction"
                     }
                 ) {
                     Text("Delete")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Cancel delete transaction"
+                    }
+                ) {
                     Text("Cancel")
                 }
             }
+        )
+    }
+    
+    // Announce deletion to accessibility services
+    if (showDeleteDialog) {
+        AccessibilityAnnouncement(
+            message = "Delete confirmation dialog opened for transaction",
+            shouldAnnounce = true
         )
     }
 }

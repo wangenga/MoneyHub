@@ -14,6 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,11 +72,14 @@ fun CategoryManagementScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddCategory,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics {
+                    contentDescription = "Add new category"
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add category"
+                    contentDescription = null // FAB already has content description
                 )
             }
         },
@@ -163,10 +169,19 @@ private fun CategoryItem(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val categoryDescription = "Category: ${category.name}, color ${category.color}${if (category.isDefault) ", default category" else ""}. Double tap to edit."
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                onClickLabel = "Edit category ${category.name}",
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics {
+                contentDescription = categoryDescription
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -181,12 +196,15 @@ private fun CategoryItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Category icon with color
+                // Category icon with color and minimum touch target
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(48.dp) // Already minimum 48dp touch target
                         .clip(CircleShape)
-                        .background(parseColor(category.color)),
+                        .background(parseColor(category.color))
+                        .semantics {
+                            contentDescription = "Category icon for ${category.name}"
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -217,28 +235,45 @@ private fun CategoryItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Edit icon
+                // Edit icon with minimum touch target
                 IconButton(
                     onClick = onClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier
+                        .size(48.dp) // Minimum 48dp touch target
+                        .semantics {
+                            contentDescription = "Edit category ${category.name}"
+                        }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit category",
+                        contentDescription = null, // IconButton already has content description
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 
-                // Delete icon
+                // Delete icon with minimum touch target
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier
+                        .size(48.dp) // Minimum 48dp touch target
+                        .semantics {
+                            contentDescription = if (category.isDefault) {
+                                "Cannot delete default category ${category.name}"
+                            } else {
+                                "Delete category ${category.name}"
+                            }
+                        },
+                    enabled = !category.isDefault
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete category",
-                        tint = MaterialTheme.colorScheme.error,
+                        contentDescription = null, // IconButton already has content description
+                        tint = if (category.isDefault) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
                         modifier = Modifier.size(20.dp)
                     )
                 }

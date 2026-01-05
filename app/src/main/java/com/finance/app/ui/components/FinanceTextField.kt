@@ -14,11 +14,14 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.finance.app.ui.accessibility.createFormFieldContentDescription
 
 /**
- * Standard text field component following Material 3 design
+ * Standard text field component following Material 3 design with accessibility support
  */
 @Composable
 fun FinanceTextField(
@@ -37,13 +40,28 @@ fun FinanceTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    isRequired: Boolean = false
 ) {
+    val fieldContentDescription = label?.let { fieldLabel ->
+        createFormFieldContentDescription(
+            label = fieldLabel,
+            value = value,
+            isError = isError,
+            errorMessage = if (isError) supportingText else null,
+            isRequired = isRequired
+        )
+    }
+    
     Column(modifier = modifier) {
         TextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    fieldContentDescription?.let { contentDescription = it }
+                },
             label = label?.let { { Text(it) } },
             placeholder = placeholder?.let { { Text(it) } },
             leadingIcon = leadingIcon,
@@ -73,14 +91,22 @@ fun FinanceTextField(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
+                    .semantics {
+                        contentDescription = if (isError) {
+                            "Error: $supportingText"
+                        } else {
+                            "Help text: $supportingText"
+                        }
+                    }
             )
         }
     }
 }
 
 /**
- * Outlined text field component
+ * Outlined text field component with accessibility support
  */
 @Composable
 fun FinanceOutlinedTextField(
@@ -99,13 +125,28 @@ fun FinanceOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    isRequired: Boolean = false
 ) {
+    val fieldContentDescription = label?.let { fieldLabel ->
+        createFormFieldContentDescription(
+            label = fieldLabel,
+            value = value,
+            isError = isError,
+            errorMessage = if (isError) supportingText else null,
+            isRequired = isRequired
+        )
+    }
+    
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    fieldContentDescription?.let { contentDescription = it }
+                },
             label = label?.let { { Text(it) } },
             placeholder = placeholder?.let { { Text(it) } },
             leadingIcon = leadingIcon,
@@ -134,7 +175,15 @@ fun FinanceOutlinedTextField(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
+                    .semantics {
+                        contentDescription = if (isError) {
+                            "Error: $supportingText"
+                        } else {
+                            "Help text: $supportingText"
+                        }
+                    }
             )
         }
     }

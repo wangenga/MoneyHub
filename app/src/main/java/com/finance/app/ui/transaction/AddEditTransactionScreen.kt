@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,17 +53,29 @@ fun AddEditTransactionScreen(
             TopAppBar(
                 title = { Text(if (uiState.isEditMode) "Edit Transaction" else "Add Transaction") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Navigate back, cancel ${if (uiState.isEditMode) "editing" else "adding"} transaction"
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = null // IconButton already has content description
                         )
                     }
                 },
                 actions = {
                     TextButton(
                         onClick = { viewModel.saveTransaction() },
-                        enabled = saveState !is SaveState.Saving
+                        enabled = saveState !is SaveState.Saving,
+                        modifier = Modifier.semantics {
+                            contentDescription = if (saveState is SaveState.Saving) {
+                                "Saving transaction, please wait"
+                            } else {
+                                "Save transaction"
+                            }
+                        }
                     ) {
                         if (saveState is SaveState.Saving) {
                             CircularProgressIndicator(

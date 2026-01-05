@@ -62,6 +62,7 @@ import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProd
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.IncomeExpenseData
 import com.finance.app.domain.model.TrendPoint
+import com.finance.app.ui.accessibility.createDataVisualizationContentDescription
 import com.finance.app.util.CurrencyUtils
 
 /**
@@ -339,12 +340,21 @@ private fun SpendingByCategoryChart(
     modifier: Modifier = Modifier
 ) {
     // Create accessibility description for the chart
-    val chartDescription = buildString {
-        append("Spending by category chart. ")
-        val sortedEntries = spendingByCategory.entries.sortedByDescending { it.value }
+    val sortedEntries = spendingByCategory.entries.sortedByDescending { it.value }
+    val chartDescription = createDataVisualizationContentDescription(
+        chartType = "Spending by category chart",
+        title = "Spending breakdown",
+        summary = "Shows spending distribution across ${sortedEntries.size} categories",
+        dataCount = sortedEntries.size
+    )
+    
+    // Create detailed data breakdown for screen readers
+    val detailedDataDescription = buildString {
+        append("Detailed breakdown: ")
         sortedEntries.forEachIndexed { index, (category, amount) ->
             if (index > 0) append(", ")
-            append("${category.name}: ${CurrencyUtils.formatAmount(amount)}")
+            val percentage = (amount / spendingByCategory.values.sum() * 100).toInt()
+            append("${category.name}: ${CurrencyUtils.formatAmount(amount)}, $percentage percent")
         }
     }
     
@@ -386,28 +396,51 @@ private fun SpendingByCategoryChart(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Legend
-                CategoryLegend(spendingByCategory = spendingByCategory)
+                // Accessible data table for screen readers
+                Column(
+                    modifier = Modifier.semantics {
+                        contentDescription = detailedDataDescription
+                    }
+                ) {
+                    Text(
+                        text = "Data breakdown:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Legend with enhanced accessibility
+                    CategoryLegend(spendingByCategory = spendingByCategory)
+                }
             }
         }
     }
 }
 
 /**
- * Legend for the pie chart showing categories and amounts
+ * Legend for the pie chart showing categories and amounts with accessibility support
  */
 @Composable
 private fun CategoryLegend(
     spendingByCategory: Map<Category, Double>,
     modifier: Modifier = Modifier
 ) {
+    val totalAmount = spendingByCategory.values.sum()
+    
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         spendingByCategory.entries.sortedByDescending { it.value }.forEach { (category, amount) ->
+            val percentage = if (totalAmount > 0) (amount / totalAmount * 100).toInt() else 0
+            val itemDescription = "${category.name}: ${CurrencyUtils.formatAmount(amount)}, $percentage percent of total spending"
+            
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = itemDescription
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -415,6 +448,9 @@ private fun CategoryLegend(
                         .size(16.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color(android.graphics.Color.parseColor(category.color)))
+                        .semantics {
+                            contentDescription = "Color indicator for ${category.name}"
+                        }
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
@@ -422,11 +458,20 @@ private fun CategoryLegend(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = CurrencyUtils.formatAmount(amount),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = CurrencyUtils.formatAmount(amount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "$percentage%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -440,10 +485,12 @@ private fun IncomeVsExpenseChart(
     incomeExpenseData: IncomeExpenseData,
     modifier: Modifier = Modifier
 ) {
-    val chartDescription = "Income versus expenses chart. " +
-            "Total income: ${CurrencyUtils.formatAmount(incomeExpenseData.totalIncome)}, " +
-            "Total expenses: ${CurrencyUtils.formatAmount(incomeExpenseData.totalExpense)}, " +
-            "Net balance: ${CurrencyUtils.formatAmount(incomeExpenseData.netBalance)}"
+    val chartDescription = createDataVisualizationContentDescription(
+        chartType = "Income versus expenses bar chart",
+        title = "Financial comparison",
+        summary = "Income: ${CurrencyUtils.formatAmount(incomeExpenseData.totalIncome)}, Expenses: ${CurrencyUtils.formatAmount(incomeExpenseData.totalExpense)}, Net: ${CurrencyUtils.formatAmount(incomeExpenseData.netBalance)}",
+        dataCount = 2
+    )
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -482,21 +529,64 @@ private fun IncomeVsExpenseChart(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Legend for Income vs Expense
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            // Accessible data summary
+            Column(
+                modifier = Modifier.semantics {
+                    contentDescription = "Income and expense comparison data"
+                }
             ) {
-                LegendItem(
-                    color = MaterialTheme.colorScheme.primary,
-                    label = "Income",
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "Financial Summary:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                LegendItem(
-                    color = MaterialTheme.colorScheme.error,
-                    label = "Expenses",
-                    modifier = Modifier.weight(1f)
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Legend for Income vs Expense with enhanced accessibility
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    LegendItem(
+                        color = MaterialTheme.colorScheme.primary,
+                        label = "Income",
+                        amount = CurrencyUtils.formatAmount(incomeExpenseData.totalIncome),
+                        modifier = Modifier.weight(1f)
+                    )
+                    LegendItem(
+                        color = MaterialTheme.colorScheme.error,
+                        label = "Expenses",
+                        amount = CurrencyUtils.formatAmount(incomeExpenseData.totalExpense),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Net balance
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Net balance: ${CurrencyUtils.formatAmount(incomeExpenseData.netBalance)}, ${if (incomeExpenseData.netBalance >= 0) "positive" else "negative"} balance"
+                        },
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Net Balance: ",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = CurrencyUtils.formatAmount(incomeExpenseData.netBalance),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (incomeExpenseData.netBalance >= 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                    )
+                }
             }
         }
     }
@@ -510,13 +600,19 @@ private fun SpendingTrendChart(
     spendingTrend: List<TrendPoint>,
     modifier: Modifier = Modifier
 ) {
-    val chartDescription = buildString {
-        append("Spending trend chart over time. ")
-        if (spendingTrend.isNotEmpty()) {
-            val minAmount = spendingTrend.minOfOrNull { it.amount } ?: 0.0
-            val maxAmount = spendingTrend.maxOfOrNull { it.amount } ?: 0.0
-            append("Spending ranges from ${CurrencyUtils.formatAmount(minAmount)} to ${CurrencyUtils.formatAmount(maxAmount)} over ${spendingTrend.size} data points.")
-        }
+    val chartDescription = if (spendingTrend.isNotEmpty()) {
+        val minAmount = spendingTrend.minOfOrNull { it.amount } ?: 0.0
+        val maxAmount = spendingTrend.maxOfOrNull { it.amount } ?: 0.0
+        val avgAmount = spendingTrend.map { it.amount }.average()
+        
+        createDataVisualizationContentDescription(
+            chartType = "Spending trend line chart",
+            title = "Spending over time",
+            summary = "Range from ${CurrencyUtils.formatAmount(minAmount)} to ${CurrencyUtils.formatAmount(maxAmount)}, average ${CurrencyUtils.formatAmount(avgAmount)}",
+            dataCount = spendingTrend.size
+        )
+    } else {
+        "Spending trend chart with no data available"
     }
     
     Card(
@@ -553,22 +649,67 @@ private fun SpendingTrendChart(
                             }
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Trend summary for accessibility
+                val minAmount = spendingTrend.minOfOrNull { it.amount } ?: 0.0
+                val maxAmount = spendingTrend.maxOfOrNull { it.amount } ?: 0.0
+                val avgAmount = spendingTrend.map { it.amount }.average()
+                
+                Column(
+                    modifier = Modifier.semantics {
+                        contentDescription = "Trend analysis: Minimum spending ${CurrencyUtils.formatAmount(minAmount)}, Maximum spending ${CurrencyUtils.formatAmount(maxAmount)}, Average spending ${CurrencyUtils.formatAmount(avgAmount)}"
+                    }
+                ) {
+                    Text(
+                        text = "Trend Analysis:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Min: ${CurrencyUtils.formatAmount(minAmount)}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Avg: ${CurrencyUtils.formatAmount(avgAmount)}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Max: ${CurrencyUtils.formatAmount(maxAmount)}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 /**
- * Legend item component
+ * Legend item component with accessibility support
  */
 @Composable
 private fun LegendItem(
     color: Color,
     label: String,
+    amount: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val contentDesc = buildString {
+        append("$label indicator")
+        amount?.let { append(": $it") }
+    }
+    
     Row(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = contentDesc
+        },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -579,10 +720,21 @@ private fun LegendItem(
                 .background(color)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            amount?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

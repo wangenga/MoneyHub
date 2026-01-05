@@ -94,3 +94,10 @@ lint-results.xml
 #kiro generated 
 .kiro
 .vscode
+
+# Documentation files
+SYNC_IMPLEMENTATION.md
+test_onboarding.md
+WORKMANAGER_SYNC_IMPLEMENTATION.md
+ACCESSIBILITY_IMPLEMENTATION_SUMMARY.md
+FIRESTORE_SETUP.md
