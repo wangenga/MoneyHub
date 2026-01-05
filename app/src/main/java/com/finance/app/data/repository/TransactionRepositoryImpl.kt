@@ -33,6 +33,16 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getTransactionsPaginated(limit: Int, offset: Int): Flow<List<Transaction>> {
+        return authRepository.getCurrentUser().map { user ->
+            if (user != null) {
+                transactionDao.getTransactionsPaginated(user.id, limit, offset).first().map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        }
+    }
+
     override fun getTransactionById(id: String): Flow<Transaction?> {
         return transactionDao.getTransactionById(id).map { entity ->
             entity?.toDomain()
@@ -51,10 +61,34 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getTransactionsByDateRangePaginated(start: Long, end: Long, limit: Int, offset: Int): Flow<List<Transaction>> {
+        return authRepository.getCurrentUser().map { user ->
+            if (user != null) {
+                transactionDao.getTransactionsByDateRangePaginated(user.id, start, end, limit, offset)
+                    .first()
+                    .map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        }
+    }
+
     override fun getTransactionsByCategory(categoryId: String): Flow<List<Transaction>> {
         return authRepository.getCurrentUser().map { user ->
             if (user != null) {
                 transactionDao.getTransactionsByCategory(user.id, categoryId)
+                    .first()
+                    .map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        }
+    }
+
+    override fun getTransactionsByCategoryPaginated(categoryId: String, limit: Int, offset: Int): Flow<List<Transaction>> {
+        return authRepository.getCurrentUser().map { user ->
+            if (user != null) {
+                transactionDao.getTransactionsByCategoryPaginated(user.id, categoryId, limit, offset)
                     .first()
                     .map { it.toDomain() }
             } else {

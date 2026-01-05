@@ -23,6 +23,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
 import com.finance.app.ui.common.AsyncState
 import com.finance.app.ui.common.UiState
+import com.finance.app.util.rememberCachedIcon
+import com.finance.app.util.IconCache
 
 /**
  * Category management screen to display and manage all categories
@@ -175,6 +177,13 @@ private fun CategoryItem(
 ) {
     val categoryDescription = "Category: ${category.name}, color ${category.color}${if (category.isDefault) ", default category" else ""}. Double tap to edit."
     
+    // Use cached icon for better performance
+    val cachedIcon = rememberCachedIcon(
+        iconName = category.iconName,
+        color = category.color,
+        size = 48.dp
+    )
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -205,14 +214,14 @@ private fun CategoryItem(
                     modifier = Modifier
                         .size(48.dp) // Already minimum 48dp touch target
                         .clip(CircleShape)
-                        .background(parseColor(category.color))
+                        .background(Color(cachedIcon.colorInt))
                         .semantics {
                             contentDescription = "Category icon for ${category.name}"
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = category.iconName.firstOrNull()?.toString() ?: "?",
+                        text = cachedIcon.displayText,
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         fontWeight = FontWeight.Bold

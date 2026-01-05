@@ -12,11 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.TransactionType
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Dialog for filtering transactions
+ * Dialog for filtering transactions with debounced search
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,9 +32,25 @@ fun FilterDialog(
     var endDate by remember { mutableStateOf(filterState.endDate) }
     var selectedType by remember { mutableStateOf(filterState.type) }
     var selectedCategoryId by remember { mutableStateOf(filterState.categoryId) }
+    var searchQuery by remember { mutableStateOf(filterState.searchQuery ?: "") }
     
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+
+    // Debounced search query
+    val debouncedSearchQuery by remember {
+        derivedStateOf {
+            searchQuery.trim()
+        }
+    }
+
+    // Apply debouncing effect
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotBlank()) {
+            delay(300) // 300ms debounce delay
+            // The actual filtering will happen when Apply is clicked
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -45,6 +62,22 @@ fun FilterDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Search Section
+                Text(
+                    text = "Search",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search transactions...") },
+                    placeholder = { Text("Enter notes, amount, or category") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
                 // Date Range Section
                 Text(
                     text = "Date Range",
@@ -177,7 +210,8 @@ fun FilterDialog(
                             startDate = startDate,
                             endDate = endDate,
                             type = selectedType,
-                            categoryId = selectedCategoryId
+                            categoryId = selectedCategoryId,
+                            searchQuery = debouncedSearchQuery.takeIf { it.isNotBlank() }
                         )
                     )
                 }

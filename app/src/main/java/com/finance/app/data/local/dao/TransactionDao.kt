@@ -12,17 +12,29 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
     fun getAllTransactions(userId: String): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    fun getTransactionsPaginated(userId: String, limit: Int, offset: Int): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     fun getTransactionById(id: String): Flow<TransactionEntity?>
 
     @Query("SELECT * FROM transactions WHERE userId = :userId AND date BETWEEN :start AND :end ORDER BY date DESC")
     fun getTransactionsByDateRange(userId: String, start: Long, end: Long): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND date BETWEEN :start AND :end ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    fun getTransactionsByDateRangePaginated(userId: String, start: Long, end: Long, limit: Int, offset: Int): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId ORDER BY date DESC")
     fun getTransactionsByCategory(userId: String, categoryId: String): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    fun getTransactionsByCategoryPaginated(userId: String, categoryId: String, limit: Int, offset: Int): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE userId = :userId AND type = :type ORDER BY date DESC")
     fun getTransactionsByType(userId: String, type: String): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND type = :type ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    fun getTransactionsByTypePaginated(userId: String, type: String, limit: Int, offset: Int): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE userId = :userId AND syncStatus = :syncStatus")
     fun getTransactionsBySyncStatus(userId: String, syncStatus: String): Flow<List<TransactionEntity>>

@@ -32,6 +32,8 @@ import com.finance.app.ui.common.UserFeedbackManager
 import com.finance.app.ui.components.ErrorDisplay
 import com.finance.app.ui.components.OfflineIndicator
 import com.finance.app.util.CurrencyUtils
+import com.finance.app.util.IconCache
+import com.finance.app.util.rememberCachedIcon
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -59,6 +61,13 @@ fun TransactionListScreen(
         UserFeedbackManager(snackbarHostState, scope)
     }
 
+    // Optimize filter state checks with derivedStateOf
+    val hasActiveFilters by remember {
+        derivedStateOf {
+            filterState.hasActiveFilters()
+        }
+    }
+
     // Handle global errors
     LaunchedEffect(globalError) {
         globalError?.let { error ->
@@ -76,7 +85,7 @@ fun TransactionListScreen(
                         IconButton(
                             onClick = { showFilterDialog = true },
                             modifier = Modifier.semantics {
-                                contentDescription = if (filterState.hasActiveFilters()) {
+                                contentDescription = if (hasActiveFilters) {
                                     "Filter transactions, filters currently active"
                                 } else {
                                     "Filter transactions"
@@ -84,7 +93,7 @@ fun TransactionListScreen(
                             }
                         ) {
                             Badge(
-                                containerColor = if (filterState.hasActiveFilters()) {
+                                containerColor = if (hasActiveFilters) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     Color.Transparent
@@ -134,7 +143,7 @@ fun TransactionListScreen(
                     if (state.data.isEmpty) {
                         EmptyTransactionsView(
                             modifier = Modifier.align(Alignment.Center),
-                            hasFilters = filterState.hasActiveFilters(),
+                            hasFilters = hasActiveFilters,
                             onClearFilters = { viewModel.clearFilters() }
                         )
                     } else {
@@ -143,7 +152,9 @@ fun TransactionListScreen(
                             categoriesMap = state.data.categoriesMap,
                             onTransactionClick = onEditTransaction,
                             onDeleteTransaction = { viewModel.deleteTransaction(it) },
-                            userFeedbackManager = userFeedbackManager
+                            userFeedbackManager = userFeedbackManager,
+                            hasMoreData = state.data.hasMoreData,
+                            onLoadMore = { viewModel.loadMoreTransactions() }
                         )
                     }
                 }
@@ -180,7 +191,9 @@ private fun TransactionList(
     categoriesMap: Map<String, Category>,
     onTransactionClick: (String) -> Unit,
     onDeleteTransaction: (String) -> Unit,
-    userFeedbackManager: UserFeedbackManager
+    userFeedbackManager: UserFeedbackManager,
+    hasMoreData: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -201,6 +214,27 @@ private fun TransactionList(
                 }
             )
         }
+        
+        // Load more item at the end
+        if (hasMoreData) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        onClick = onLoadMore,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Load more transactions"
+                        }
+                    ) {
+                        Text("Load More")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -214,14 +248,36 @@ private fun TransactionItem(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     
-    // Create comprehensive content description for the transaction item
-    val transactionDescription = createTransactionContentDescription(
-        category = category?.name ?: "Unknown category",
-        amount = CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type),
-        date = formatDate(transaction.date),
-        notes = transaction.notes,
-        actionHint = "Double tap to edit"
+    // Optimize expensive calculations with remember
+    val formattedDate = remember(transaction.date) { formatDate(transaction.date) }
+    val formattedAmount = remember(transaction.amount, transaction.type) { 
+        CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type) 
+    }
+    val amountColor = remember(transaction.type) {
+        if (transaction.type == TransactionType.INCOME) {
+            Color(0xFF4CAF50)
+        } else {
+            Color(0xFFF44336)
+        }
+    }
+    
+    // Use cached icon for better performance
+    val cachedIcon = rememberCachedIcon(
+        iconName = category?.iconName ?: "?",
+        color = category?.color ?: "#FF6B6B",
+        size = 48.dp
     )
+    
+    // Create comprehensive content description for the transaction item
+    val transactionDescription = remember(category?.name, formattedAmount, formattedDate, transaction.notes) {
+        createTransactionContentDescription(
+            category = category?.name ?: "Unknown category",
+            amount = formattedAmount,
+            date = formattedDate,
+            notes = transaction.notes,
+            actionHint = "Double tap to edit"
+        )
+    }
     
     Card(
         modifier = Modifier
@@ -253,17 +309,14 @@ private fun TransactionItem(
                     modifier = Modifier
                         .size(48.dp) // Minimum 48dp touch target
                         .clip(CircleShape)
-                        .background(
-                            category?.color?.let { parseColor(it) }
-                                ?: MaterialTheme.colorScheme.primaryContainer
-                        )
+                        .background(Color(cachedIcon.colorInt))
                         .semantics {
                             contentDescription = "Category: ${category?.name ?: "Unknown"}"
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = category?.iconName?.firstOrNull()?.toString() ?: "?",
+                        text = cachedIcon.displayText,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -276,7 +329,7 @@ private fun TransactionItem(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = formatDate(transaction.date),
+                        text = formattedDate,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -296,14 +349,10 @@ private fun TransactionItem(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type),
+                    text = formattedAmount,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (transaction.type == TransactionType.INCOME) {
-                        Color(0xFF4CAF50)
-                    } else {
-                        Color(0xFFF44336)
-                    },
+                    color = amountColor,
                     modifier = Modifier.semantics {
                         contentDescription = "${if (transaction.type == TransactionType.INCOME) "Income" else "Expense"}: ${CurrencyUtils.formatAmount(transaction.amount)}"
                     }
@@ -314,7 +363,7 @@ private fun TransactionItem(
                     modifier = Modifier
                         .size(48.dp) // Minimum 48dp touch target
                         .semantics {
-                            contentDescription = "Delete transaction: ${category?.name ?: "Unknown"}, ${CurrencyUtils.formatAmountWithType(transaction.amount, transaction.type)}"
+                            contentDescription = "Delete transaction: ${category?.name ?: "Unknown"}, $formattedAmount"
                         }
                 ) {
                     Icon(
@@ -461,5 +510,5 @@ private fun parseColor(colorString: String): Color {
 }
 
 private fun FilterState.hasActiveFilters(): Boolean {
-    return startDate != null || endDate != null || type != null || categoryId != null
+    return startDate != null || endDate != null || type != null || categoryId != null || !searchQuery.isNullOrBlank()
 }

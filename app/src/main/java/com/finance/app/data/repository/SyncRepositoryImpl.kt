@@ -97,13 +97,13 @@ class SyncRepositoryImpl @Inject constructor(
             }
             
             // Check if error is recoverable before retrying
-            if (lastException != null && !errorHandler.isRecoverableError(lastException!!)) {
+            if (lastException != null && !errorHandler.isRecoverableError(lastException)) {
                 break
             }
             
             // Apply intelligent delay before retry
             if (attempt < MAX_RETRY_ATTEMPTS - 1) {
-                val delayMs = errorHandler.getRetryDelay(lastException!!, attempt)
+                val delayMs = errorHandler.getRetryDelay(lastException ?: Exception("Unknown error"), attempt)
                 delay(delayMs)
             }
         }
@@ -138,14 +138,16 @@ class SyncRepositoryImpl @Inject constructor(
     }
     
     /**
-     * Performs transaction synchronization
+     * Performs transaction synchronization with delta sync optimization
      */
     private suspend fun performTransactionSync(): Result<Unit> {
         val user = authRepository.getCurrentUser().first()
             ?: return Result.failure(Exception("User not authenticated"))
         
         try {
-            // Step 1: Upload pending local transactions
+            val lastSyncTimestamp = getLastSyncTimestamp() ?: 0L
+            
+            // Step 1: Upload pending local transactions (delta sync - only PENDING items)
             val pendingTransactions = transactionDao.getTransactionsByStatus(user.id, SyncStatus.PENDING.name)
                 .map { it.toDomain() }
             
@@ -162,21 +164,22 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
             
-            // Step 2: Download remote changes
-            val lastSyncTimestamp = getLastSyncTimestamp() ?: 0L
+            // Step 2: Download remote changes (delta sync - only items updated after last sync)
             val remoteTransactionsResult = if (lastSyncTimestamp > 0) {
+                // Delta sync: only get items updated since last sync
                 firestoreDataSource.getTransactionsUpdatedAfter(user.id, lastSyncTimestamp)
             } else {
+                // Full sync: first time sync, get all items
                 firestoreDataSource.getTransactions(user.id)
             }
             
             if (remoteTransactionsResult.isFailure) {
-                return Result.failure(remoteTransactionsResult.exceptionOrNull()!!)
+                return Result.failure(remoteTransactionsResult.exceptionOrNull() ?: Exception("Unknown sync error"))
             }
             
             val remoteTransactions = remoteTransactionsResult.getOrNull() ?: emptyList()
             
-            // Step 3: Resolve conflicts and merge data
+            // Step 3: Resolve conflicts and merge data (only for changed items)
             for (remoteTransaction in remoteTransactions) {
                 val localTransaction = transactionDao.getTransactionById(remoteTransaction.id).first()
                 
@@ -204,39 +207,48 @@ class SyncRepositoryImpl @Inject constructor(
     }
     
     /**
-     * Performs category synchronization
+     * Performs category synchronization with delta sync optimization
      */
     private suspend fun performCategorySync(): Result<Unit> {
         val user = authRepository.getCurrentUser().first()
             ?: return Result.failure(Exception("User not authenticated"))
         
         try {
-            // Step 1: Upload pending local categories (if any have sync status)
-            // Note: Categories don't have sync status in current model, so we sync all user categories
-            val localCategories = categoryDao.getCategoriesByUserId(user.id).map { it.toDomain() }
+            val lastSyncTimestamp = getLastSyncTimestamp() ?: 0L
             
-            if (localCategories.isNotEmpty()) {
-                val uploadResult = firestoreDataSource.saveCategoriesBatch(user.id, localCategories)
+            // Step 1: Upload local categories (delta sync - only user-created categories that changed)
+            val localCategories = categoryDao.getCategoriesByUserId(user.id).map { it.toDomain() }
+            val categoriesToSync = if (lastSyncTimestamp > 0) {
+                // Delta sync: only sync categories updated after last sync
+                localCategories.filter { it.updatedAt > lastSyncTimestamp }
+            } else {
+                // Full sync: sync all user categories
+                localCategories
+            }
+            
+            if (categoriesToSync.isNotEmpty()) {
+                val uploadResult = firestoreDataSource.saveCategoriesBatch(user.id, categoriesToSync)
                 if (uploadResult.isFailure) {
                     return uploadResult
                 }
             }
             
-            // Step 2: Download remote changes
-            val lastSyncTimestamp = getLastSyncTimestamp() ?: 0L
+            // Step 2: Download remote changes (delta sync - only items updated after last sync)
             val remoteCategoriesResult = if (lastSyncTimestamp > 0) {
+                // Delta sync: only get categories updated since last sync
                 firestoreDataSource.getCategoriesUpdatedAfter(user.id, lastSyncTimestamp)
             } else {
+                // Full sync: first time sync, get all categories
                 firestoreDataSource.getCategories(user.id)
             }
             
             if (remoteCategoriesResult.isFailure) {
-                return Result.failure(remoteCategoriesResult.exceptionOrNull()!!)
+                return Result.failure(remoteCategoriesResult.exceptionOrNull() ?: Exception("Unknown sync error"))
             }
             
             val remoteCategories = remoteCategoriesResult.getOrNull() ?: emptyList()
             
-            // Step 3: Resolve conflicts and merge data
+            // Step 3: Resolve conflicts and merge data (only for changed items)
             for (remoteCategory in remoteCategories) {
                 val localCategory = categoryDao.getCategoryById(remoteCategory.id).first()
                 

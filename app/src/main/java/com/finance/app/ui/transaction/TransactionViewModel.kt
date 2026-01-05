@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel for transaction list screen with enhanced error handling
+ * ViewModel for transaction list screen with enhanced error handling and pagination
  */
 @HiltViewModel
 class TransactionViewModel @Inject constructor(
@@ -24,6 +24,10 @@ class TransactionViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository
 ) : BaseViewModel() {
+
+    companion object {
+        private const val PAGE_SIZE = 50
+    }
 
     private val _uiState = MutableStateFlow<UiState<TransactionListData>>(UiState.Loading)
     val uiState: StateFlow<UiState<TransactionListData>> = _uiState.asStateFlow()
@@ -33,6 +37,10 @@ class TransactionViewModel @Inject constructor(
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+
+    private var currentPage = 0
+    private var isLoadingMore = false
+    private var hasMoreData = true
 
     init {
         loadCategories()
@@ -63,11 +71,13 @@ class TransactionViewModel @Inject constructor(
 
     private fun loadTransactions() {
         _uiState.value = UiState.Loading
+        currentPage = 0
+        hasMoreData = true
         
         executeWithErrorHandling(
             operation = {
                 combine(
-                    transactionRepository.getAllTransactions(),
+                    transactionRepository.getTransactionsPaginated(PAGE_SIZE, 0),
                     _filterState,
                     _categories
                 ) { transactions, filter, categories ->
@@ -77,9 +87,12 @@ class TransactionViewModel @Inject constructor(
                         val filtered = applyFilters(transactions, filter)
                         val categoriesMap = categories.associateBy { it.id }
                         
+                        hasMoreData = transactions.size == PAGE_SIZE
+                        
                         val data = TransactionListData(
                             transactions = filtered,
-                            categoriesMap = categoriesMap
+                            categoriesMap = categoriesMap,
+                            hasMoreData = hasMoreData
                         )
                         
                         _uiState.value = if (filtered.isEmpty()) {
@@ -93,6 +106,49 @@ class TransactionViewModel @Inject constructor(
                 _uiState.value = createRetryableError(errorMessage) {
                     loadTransactions()
                 }
+            }
+        )
+    }
+
+    fun loadMoreTransactions() {
+        if (isLoadingMore || !hasMoreData) return
+        
+        isLoadingMore = true
+        currentPage++
+        
+        executeWithErrorHandling(
+            operation = {
+                combine(
+                    transactionRepository.getTransactionsPaginated(PAGE_SIZE, currentPage * PAGE_SIZE),
+                    _filterState,
+                    _categories
+                ) { newTransactions, filter, categories ->
+                    Triple(newTransactions, filter, categories)
+                }
+                    .collect { (newTransactions, filter, categories) ->
+                        val currentData = (_uiState.value as? UiState.Success)?.data
+                        if (currentData != null) {
+                            val filteredNew = applyFilters(newTransactions, filter)
+                            val allTransactions = currentData.transactions + filteredNew
+                            val categoriesMap = categories.associateBy { it.id }
+                            
+                            hasMoreData = newTransactions.size == PAGE_SIZE
+                            
+                            val updatedData = currentData.copy(
+                                transactions = allTransactions,
+                                categoriesMap = categoriesMap,
+                                hasMoreData = hasMoreData
+                            )
+                            
+                            _uiState.value = UiState.Success(updatedData)
+                        }
+                        isLoadingMore = false
+                    }
+            },
+            onError = { errorMessage ->
+                isLoadingMore = false
+                currentPage-- // Revert page increment on error
+                handleError(Exception(errorMessage))
             }
         )
     }
@@ -118,16 +174,33 @@ class TransactionViewModel @Inject constructor(
             filtered = filtered.filter { it.categoryId == filter.categoryId }
         }
 
+        // Filter by search query (debounced)
+        if (!filter.searchQuery.isNullOrBlank()) {
+            val query = filter.searchQuery.lowercase()
+            filtered = filtered.filter { transaction ->
+                // Search in notes
+                transaction.notes?.lowercase()?.contains(query) == true ||
+                // Search in amount (formatted)
+                transaction.amount.toString().contains(query) ||
+                // Search in category name (requires categories map, but we'll do basic search here)
+                transaction.categoryId.lowercase().contains(query)
+            }
+        }
+
         // Sort by date descending
         return filtered.sortedByDescending { it.date }
     }
 
     fun updateFilter(filter: FilterState) {
         _filterState.value = filter
+        // Reset pagination when filter changes
+        loadTransactions()
     }
 
     fun clearFilters() {
         _filterState.value = FilterState()
+        // Reset pagination when filters are cleared
+        loadTransactions()
     }
 
     fun deleteTransaction(transactionId: String) {
@@ -159,7 +232,8 @@ class TransactionViewModel @Inject constructor(
 data class TransactionListData(
     val transactions: List<Transaction> = emptyList(),
     val categoriesMap: Map<String, Category> = emptyMap(),
-    val isEmpty: Boolean = false
+    val isEmpty: Boolean = false,
+    val hasMoreData: Boolean = false
 )
 
 /**
@@ -169,5 +243,6 @@ data class FilterState(
     val startDate: Long? = null,
     val endDate: Long? = null,
     val type: TransactionType? = null,
-    val categoryId: String? = null
+    val categoryId: String? = null,
+    val searchQuery: String? = null
 )
