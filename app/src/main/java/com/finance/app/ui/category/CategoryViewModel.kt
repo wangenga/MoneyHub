@@ -1,11 +1,13 @@
 package com.finance.app.ui.category
 
+import com.finance.app.data.sync.NetworkStateObserver
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.ui.common.AsyncState
 import com.finance.app.ui.common.BaseViewModel
 import com.finance.app.ui.common.NetworkState
 import com.finance.app.ui.common.UiState
+import com.finance.app.util.ErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -15,8 +17,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val categoryRepository: CategoryRepository
-) : BaseViewModel() {
+    private val categoryRepository: CategoryRepository,
+    errorHandler: ErrorHandler,
+    networkStateObserver: NetworkStateObserver
+) : BaseViewModel(errorHandler, networkStateObserver) {
 
     private val _uiState = MutableStateFlow<UiState<List<Category>>>(UiState.Loading)
     val uiState: StateFlow<UiState<List<Category>>> = _uiState.asStateFlow()

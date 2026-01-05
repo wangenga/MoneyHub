@@ -152,6 +152,27 @@ fun SettingsScreen(
                     )
                 }
             }
+            
+            // Debug Section (only in debug builds)
+            item {
+                SettingsSection(title = "Debug") {
+                    // Connection Test
+                    SettingsItem(
+                        icon = Icons.Default.NetworkCheck,
+                        title = "Connection Test",
+                        subtitle = "Test Firebase and network connectivity",
+                        onClick = { /* TODO: Navigate to connection test */ }
+                    )
+                    
+                    // Database Debug
+                    SettingsItem(
+                        icon = Icons.Default.Storage,
+                        title = "Database Debug",
+                        subtitle = "View database status and debug info",
+                        onClick = { /* TODO: Navigate to database debug */ }
+                    )
+                }
+            }
         }
     }
     

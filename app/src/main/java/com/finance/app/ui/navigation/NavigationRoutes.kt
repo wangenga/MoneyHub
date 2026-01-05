@@ -29,6 +29,10 @@ object NavigationRoutes {
     // Onboarding
     const val ONBOARDING = "onboarding"
     
+    // Debug routes
+    const val CONNECTION_TEST = "connection_test"
+    const val DATABASE_DEBUG = "database_debug"
+    
     // Deep link routes
     const val DEEP_LINK_TRANSACTION = "finance://transaction/{transactionId}"
     const val DEEP_LINK_ADD_TRANSACTION = "finance://add_transaction"

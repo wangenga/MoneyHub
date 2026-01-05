@@ -1,6 +1,7 @@
 package com.finance.app.ui.transaction
 
 import androidx.lifecycle.viewModelScope
+import com.finance.app.data.sync.NetworkStateObserver
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.TransactionType
@@ -10,6 +11,7 @@ import com.finance.app.domain.repository.TransactionRepository
 import com.finance.app.ui.common.BaseViewModel
 import com.finance.app.ui.common.NetworkState
 import com.finance.app.ui.common.UiState
+import com.finance.app.util.ErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -22,8 +24,10 @@ import javax.inject.Inject
 class TransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val authRepository: AuthRepository
-) : BaseViewModel() {
+    private val authRepository: AuthRepository,
+    errorHandler: ErrorHandler,
+    networkStateObserver: NetworkStateObserver
+) : BaseViewModel(errorHandler, networkStateObserver) {
 
     companion object {
         private const val PAGE_SIZE = 50

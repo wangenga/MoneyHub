@@ -2,6 +2,7 @@ package com.finance.app.ui.transaction
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.finance.app.data.sync.NetworkStateObserver
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.SyncStatus
 import com.finance.app.domain.model.Transaction
@@ -12,6 +13,7 @@ import com.finance.app.domain.repository.TransactionRepository
 import com.finance.app.ui.common.AsyncState
 import com.finance.app.ui.common.BaseViewModel
 import com.finance.app.ui.common.NetworkState
+import com.finance.app.util.ErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import java.util.*
@@ -25,8 +27,10 @@ class AddEditTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository,
-    savedStateHandle: SavedStateHandle
-) : BaseViewModel() {
+    savedStateHandle: SavedStateHandle,
+    errorHandler: ErrorHandler,
+    networkStateObserver: NetworkStateObserver
+) : BaseViewModel(errorHandler, networkStateObserver) {
 
     private val transactionId: String? = savedStateHandle.get<String>("transactionId")
 

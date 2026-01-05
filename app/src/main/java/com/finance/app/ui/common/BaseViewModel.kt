@@ -9,18 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Base ViewModel that provides common error handling and network state management
  */
-abstract class BaseViewModel : ViewModel() {
-    
-    @Inject
-    protected lateinit var errorHandler: ErrorHandler
-    
-    @Inject
-    protected lateinit var networkStateObserver: NetworkStateObserver
+abstract class BaseViewModel(
+    protected val errorHandler: ErrorHandler,
+    protected val networkStateObserver: NetworkStateObserver
+) : ViewModel() {
     
     private val _networkState = MutableStateFlow<NetworkState>(NetworkState.Unknown)
     val networkState: StateFlow<NetworkState> = _networkState.asStateFlow()
