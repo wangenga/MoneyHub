@@ -12,8 +12,6 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.finance.app.ui.auth.AuthNavigation
 import com.finance.app.ui.auth.BiometricLockScreen
-import com.finance.app.ui.navigation.AppNavigationViewModel
-import com.finance.app.ui.onboarding.OnboardingScreen
 
 /**
  * Root navigation component that handles onboarding, authentication flow and main app navigation
@@ -38,6 +36,11 @@ fun AppNavigation(
                     popUpTo(0) { inclusive = true }
                 }
             }
+            NavigationState.BIOMETRIC_LOCK -> {
+                navController.navigate(NavigationRoutes.BIOMETRIC_LOCK) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
             NavigationState.MAIN -> {
                 navController.navigate(NavigationRoutes.MAIN_GRAPH) {
                     popUpTo(0) { inclusive = true }
@@ -51,18 +54,32 @@ fun AppNavigation(
         startDestination = when (navigationState) {
             NavigationState.ONBOARDING -> NavigationRoutes.ONBOARDING
             NavigationState.AUTH -> NavigationRoutes.AUTH_GRAPH
+            NavigationState.BIOMETRIC_LOCK -> NavigationRoutes.BIOMETRIC_LOCK
             NavigationState.MAIN -> NavigationRoutes.MAIN_GRAPH
         }
     ) {
         // Onboarding flow
         composable(NavigationRoutes.ONBOARDING) {
-            OnboardingScreen(
+            com.finance.app.ui.onboarding.OnboardingScreen(
                 onNavigateToAuth = {
                     navController.navigate(NavigationRoutes.AUTH_GRAPH) {
                         popUpTo(NavigationRoutes.ONBOARDING) {
                             inclusive = true
                         }
                     }
+                }
+            )
+        }
+        
+        // Biometric lock screen (shown when user is logged in but needs to unlock)
+        composable(NavigationRoutes.BIOMETRIC_LOCK) {
+            BiometricLockScreen(
+                onAuthenticationSuccess = {
+                    viewModel.onBiometricUnlocked()
+                },
+                onAuthenticationError = { error ->
+                    android.util.Log.e("AppNavigation", "Biometric authentication failed: $error")
+                    // Stay on biometric lock screen - user must authenticate
                 }
             )
         }
@@ -78,29 +95,7 @@ fun AppNavigation(
                         // Authentication handled by LaunchedEffect above
                     },
                     onGoogleSignIn = {
-                        // TODO: Implement Google Sign-In flow
                         android.util.Log.d("AppNavigation", "Google Sign-In requested")
-                    }
-                )
-            }
-            
-            composable(NavigationRoutes.BIOMETRIC_LOCK) {
-                BiometricLockScreen(
-                    onAuthenticationSuccess = {
-                        navController.navigate(NavigationRoutes.MAIN_GRAPH) {
-                            popUpTo(NavigationRoutes.AUTH_GRAPH) {
-                                inclusive = true
-                            }
-                        }
-                    },
-                    onAuthenticationError = { error ->
-                        android.util.Log.e("AppNavigation", "Biometric authentication failed: $error")
-                        // Stay on biometric lock screen or navigate to login
-                        navController.navigate(NavigationRoutes.LOGIN) {
-                            popUpTo(NavigationRoutes.BIOMETRIC_LOCK) {
-                                inclusive = true
-                            }
-                        }
                     }
                 )
             }

@@ -2,6 +2,7 @@ package com.finance.app.ui.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.finance.app.domain.biometric.BiometricAuthenticator
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.OnboardingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AppNavigationViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val onboardingRepository: OnboardingRepository
+    private val onboardingRepository: OnboardingRepository,
+    private val biometricAuthenticator: BiometricAuthenticator
 ) : ViewModel() {
     
     val isAuthenticated = authRepository.isAuthenticated()
@@ -26,6 +28,9 @@ class AppNavigationViewModel @Inject constructor(
     
     private val _isOnboardingCompleted = MutableStateFlow(false)
     val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
+    
+    private val _isBiometricUnlocked = MutableStateFlow(false)
+    val isBiometricUnlocked: StateFlow<Boolean> = _isBiometricUnlocked.asStateFlow()
     
     init {
         checkOnboardingStatus()
@@ -39,15 +44,34 @@ class AppNavigationViewModel @Inject constructor(
     }
     
     /**
+     * Call this when biometric authentication succeeds
+     */
+    fun onBiometricUnlocked() {
+        _isBiometricUnlocked.value = true
+    }
+    
+    /**
+     * Check if biometric lock should be shown
+     */
+    fun shouldShowBiometricLock(): Boolean {
+        return biometricAuthenticator.isBiometricEnabled() && 
+               biometricAuthenticator.isBiometricAvailable() &&
+               !_isBiometricUnlocked.value
+    }
+    
+    /**
      * Combined flow to determine the initial navigation destination
      */
     val navigationState = combine(
         isOnboardingCompleted,
-        isAuthenticated
-    ) { onboardingCompleted, authenticated ->
+        isAuthenticated,
+        isBiometricUnlocked
+    ) { onboardingCompleted, authenticated, biometricUnlocked ->
         when {
             !onboardingCompleted -> NavigationState.ONBOARDING
             !authenticated -> NavigationState.AUTH
+            authenticated && biometricAuthenticator.isBiometricEnabled() && 
+                biometricAuthenticator.isBiometricAvailable() && !biometricUnlocked -> NavigationState.BIOMETRIC_LOCK
             else -> NavigationState.MAIN
         }
     }
@@ -59,5 +83,6 @@ class AppNavigationViewModel @Inject constructor(
 enum class NavigationState {
     ONBOARDING,
     AUTH,
+    BIOMETRIC_LOCK,
     MAIN
 }

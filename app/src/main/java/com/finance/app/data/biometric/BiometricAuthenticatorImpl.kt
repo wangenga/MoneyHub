@@ -1,6 +1,7 @@
 package com.finance.app.data.biometric
 
 import android.content.Context
+import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -25,6 +26,7 @@ class BiometricAuthenticatorImpl @Inject constructor(
 ) : BiometricAuthenticator {
     
     companion object {
+        private const val TAG = "BiometricAuth"
         private const val PREFS_NAME = "biometric_prefs"
         private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
     }
@@ -63,12 +65,22 @@ class BiometricAuthenticatorImpl @Inject constructor(
     }
     
     override suspend fun authenticate(): Result<Boolean> {
+        Log.d(TAG, "authenticate() called")
+        
         if (!isBiometricAvailable()) {
+            Log.e(TAG, "Biometric not available")
             return Result.failure(Exception("Biometric authentication not available"))
         }
         
-        val activity = activityProvider.getCurrentActivity() as? FragmentActivity
-            ?: return Result.failure(Exception("Activity not available"))
+        val activity = activityProvider.getCurrentActivity()
+        Log.d(TAG, "Got activity from provider: ${activity?.let { it::class.simpleName } ?: "null"}")
+        
+        if (activity == null || activity !is FragmentActivity) {
+            Log.e(TAG, "Activity is null or not FragmentActivity")
+            return Result.failure(Exception("Activity not available"))
+        }
+        
+        Log.d(TAG, "Starting biometric prompt on activity: ${activity::class.simpleName}")
         
         return suspendCancellableCoroutine { continuation ->
             val executor = ContextCompat.getMainExecutor(context)
@@ -77,6 +89,7 @@ class BiometricAuthenticatorImpl @Inject constructor(
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         super.onAuthenticationError(errorCode, errString)
+                        Log.e(TAG, "Authentication error: $errorCode - $errString")
                         if (errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
                             errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
                             continuation.resume(Result.success(false))
@@ -87,11 +100,13 @@ class BiometricAuthenticatorImpl @Inject constructor(
                     
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                         super.onAuthenticationSucceeded(result)
+                        Log.d(TAG, "Authentication succeeded")
                         continuation.resume(Result.success(true))
                     }
                     
                     override fun onAuthenticationFailed() {
                         super.onAuthenticationFailed()
+                        Log.d(TAG, "Authentication failed (user can retry)")
                         // Don't complete here, let user try again
                     }
                 }
@@ -106,7 +121,7 @@ class BiometricAuthenticatorImpl @Inject constructor(
             biometricPrompt.authenticate(promptInfo)
             
             continuation.invokeOnCancellation {
-                // Handle cancellation if needed
+                Log.d(TAG, "Authentication cancelled")
             }
         }
     }
