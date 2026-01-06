@@ -4,6 +4,7 @@ import com.finance.app.data.local.dao.CategoryDao
 import com.finance.app.data.mapper.toDomain
 import com.finance.app.data.mapper.toEntity
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
@@ -93,6 +94,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 name = "Food",
                 color = "#FF6B6B",
                 iconName = "F",
+                categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -103,6 +105,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 name = "Rent",
                 color = "#4ECDC4",
                 iconName = "R",
+                categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -113,6 +116,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 name = "Transport",
                 color = "#45B7D1",
                 iconName = "T",
+                categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -123,6 +127,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 name = "Entertainment",
                 color = "#FFA07A",
                 iconName = "E",
+                categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime
@@ -133,6 +138,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 name = "Utilities",
                 color = "#98D8C8",
                 iconName = "U",
+                categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
                 updatedAt = currentTime

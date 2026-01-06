@@ -2,10 +2,11 @@ package com.finance.app.data.mapper
 
 import com.finance.app.data.local.entity.CategoryEntity
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 
 /**
  * Mapper functions to convert between Category domain model and CategoryEntity
- * To be fully implemented in task 2
+ * Note: categoryType mapping will be fully implemented in task 2 when CategoryEntity is updated
  */
 
 fun CategoryEntity.toDomain(): Category {
@@ -15,6 +16,7 @@ fun CategoryEntity.toDomain(): Category {
         name = name,
         color = color,
         iconName = iconName,
+        categoryType = CategoryType.EXPENSE, // Default for backward compatibility until entity is updated
         isDefault = isDefault,
         createdAt = createdAt,
         updatedAt = updatedAt

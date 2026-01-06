@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,7 +50,8 @@ class AddEditCategoryViewModel @Inject constructor(
                         isEditMode = true,
                         name = category.name,
                         color = category.color,
-                        iconName = category.iconName
+                        iconName = category.iconName,
+                        categoryType = category.categoryType
                     )
                 }
         }
@@ -68,6 +70,10 @@ class AddEditCategoryViewModel @Inject constructor(
 
     fun updateIcon(iconName: String) {
         _uiState.value = _uiState.value.copy(iconName = iconName)
+    }
+    
+    fun updateCategoryType(categoryType: CategoryType) {
+        _uiState.value = _uiState.value.copy(categoryType = categoryType)
     }
 
     fun saveCategory() {
@@ -93,6 +99,7 @@ class AddEditCategoryViewModel @Inject constructor(
                 name = _uiState.value.name.trim(),
                 color = _uiState.value.color,
                 iconName = _uiState.value.iconName,
+                categoryType = _uiState.value.categoryType,
                 isDefault = false,
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis()
@@ -129,6 +136,7 @@ data class AddEditCategoryUiState(
     val name: String = "",
     val color: String = "#FF6B6B",
     val iconName: String = "A",
+    val categoryType: CategoryType = CategoryType.EXPENSE,
     val nameError: String? = null
 )
 
