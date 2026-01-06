@@ -95,9 +95,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setBiometricEnabled(enabled: Boolean) {
         if (!enabled) {
-            // Disable directly
+            // Disable directly and update UI immediately
             viewModelScope.launch {
                 settingsRepository.setBiometricLockEnabled(false)
+                _uiState.value = _uiState.value.copy(isBiometricEnabled = false)
             }
         } else {
             // Enable with authentication
@@ -114,6 +115,7 @@ class SettingsViewModel @Inject constructor(
                     if (authenticated) {
                         settingsRepository.setBiometricLockEnabled(true)
                         _uiState.value = _uiState.value.copy(
+                            isBiometricEnabled = true,
                             biometricAuthState = BiometricAuthState.Success
                         )
                     } else {
