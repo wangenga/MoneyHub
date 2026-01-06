@@ -252,7 +252,10 @@ fun LoginScreen(
                         .build()
                     
                     val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
-                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                    // Revoke access first to always show account picker with all accounts
+                    googleSignInClient.revokeAccess().addOnCompleteListener {
+                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                    }
                 },
                 enabled = loginState !is AuthUiState.Loading,
                 modifier = Modifier

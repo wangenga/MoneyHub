@@ -42,6 +42,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var networkConnectivityChecker: NetworkConnectivityChecker
     
+    @Inject
+    lateinit var activityProvider: ActivityProvider
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -51,7 +54,7 @@ class MainActivity : FragmentActivity() {
         }
         
         // Set activity for biometric authentication
-        ActivityProvider.setActivity(this)
+        activityProvider.setCurrentActivity(this)
         
         setContent {
             FinanceAppTheme {
@@ -131,7 +134,7 @@ class MainActivity : FragmentActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        ActivityProvider.clearActivity()
+        activityProvider.clearCurrentActivity()
     }
 }
 

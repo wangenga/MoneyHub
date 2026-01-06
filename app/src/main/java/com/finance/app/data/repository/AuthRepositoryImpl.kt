@@ -5,6 +5,7 @@ import com.finance.app.data.mapper.toDomain
 import com.finance.app.data.mapper.toEntity
 import com.finance.app.domain.model.User
 import com.finance.app.domain.repository.AuthRepository
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -20,6 +21,7 @@ import javax.inject.Inject
  */
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
+    private val googleSignInClient: GoogleSignInClient,
     private val userDao: UserDao
 ) : AuthRepository {
 
@@ -78,6 +80,9 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signOut() {
         try {
             firebaseAuth.signOut()
+            // Revoke access to force account picker on next login
+            // revokeAccess() disconnects the app completely, ensuring fresh account selection
+            googleSignInClient.revokeAccess().await()
             // Clear local user data
             userDao.deleteAll()
         } catch (e: Exception) {

@@ -14,28 +14,33 @@ class ActivityProvider @Inject constructor() {
     
     fun setCurrentActivity(activity: FragmentActivity) {
         activityRef = WeakReference(activity)
+        // Also update static reference for backward compatibility
+        staticActivityRef = activityRef
     }
     
     fun getCurrentActivity(): FragmentActivity? {
-        return activityRef?.get()
+        return activityRef?.get() ?: staticActivityRef?.get()
     }
     
     fun clearCurrentActivity() {
         activityRef?.clear()
         activityRef = null
+        staticActivityRef?.clear()
+        staticActivityRef = null
     }
     
     companion object {
+        private var staticActivityRef: WeakReference<FragmentActivity>? = null
+        
         @JvmStatic
         fun setActivity(activity: FragmentActivity) {
-            // For static access - delegate to instance method
-            // This is a temporary bridge method for compatibility
+            staticActivityRef = WeakReference(activity)
         }
         
         @JvmStatic
         fun clearActivity() {
-            // For static access - delegate to instance method
-            // This is a temporary bridge method for compatibility
+            staticActivityRef?.clear()
+            staticActivityRef = null
         }
     }
 }
