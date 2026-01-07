@@ -15,6 +15,30 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id")
     fun getCategoryById(id: String): Flow<CategoryEntity?>
 
+    @Query("""
+        SELECT * FROM categories 
+        WHERE categoryType = :type 
+        AND (userId = :userId OR isDefault = 1)
+    """)
+    fun getCategoriesByType(type: String, userId: String): Flow<List<CategoryEntity>>
+
+    @Query("""
+        SELECT * FROM categories 
+        WHERE categoryType = 'EXPENSE' 
+        AND (userId = :userId OR isDefault = 1)
+    """)
+    fun getExpenseCategories(userId: String): Flow<List<CategoryEntity>>
+
+    @Query("""
+        SELECT * FROM categories 
+        WHERE categoryType = 'INCOME' 
+        AND userId = :userId
+    """)
+    fun getIncomeCategories(userId: String): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories WHERE isDefault = 1")
+    suspend fun getDefaultCategories(): List<CategoryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(category: CategoryEntity)
 
@@ -26,6 +50,9 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM categories WHERE id = :id AND isDefault = 0")
+    suspend fun deleteCustomCategory(id: String): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun getTransactionCountForCategory(categoryId: String): Int

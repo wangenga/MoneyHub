@@ -6,7 +6,6 @@ import com.finance.app.domain.model.CategoryType
 
 /**
  * Mapper functions to convert between Category domain model and CategoryEntity
- * Note: categoryType mapping will be fully implemented in task 2 when CategoryEntity is updated
  */
 
 fun CategoryEntity.toDomain(): Category {
@@ -16,7 +15,11 @@ fun CategoryEntity.toDomain(): Category {
         name = name,
         color = color,
         iconName = iconName,
-        categoryType = CategoryType.EXPENSE, // Default for backward compatibility until entity is updated
+        categoryType = when (categoryType) {
+            "INCOME" -> CategoryType.INCOME
+            "EXPENSE" -> CategoryType.EXPENSE
+            else -> CategoryType.EXPENSE // Default fallback for invalid values
+        },
         isDefault = isDefault,
         createdAt = createdAt,
         updatedAt = updatedAt
@@ -30,6 +33,7 @@ fun Category.toEntity(): CategoryEntity {
         name = name,
         color = color,
         iconName = iconName,
+        categoryType = categoryType.name, // Convert enum to string
         isDefault = isDefault,
         createdAt = createdAt,
         updatedAt = updatedAt
