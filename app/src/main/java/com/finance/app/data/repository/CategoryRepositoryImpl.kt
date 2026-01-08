@@ -21,8 +21,8 @@ class CategoryRepositoryImpl @Inject constructor(
     private val syncScheduler: SyncScheduler
 ) : CategoryRepository {
 
-    override fun getAllCategories(): Flow<List<Category>> {
-        return categoryDao.getAllCategories().map { entities ->
+    override fun getAllCategories(userId: String): Flow<List<Category>> {
+        return categoryDao.getAllCategoriesForUser(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
@@ -54,8 +54,8 @@ class CategoryRepositoryImpl @Inject constructor(
     override suspend fun insertCategory(category: Category): Result<Unit> {
         return try {
             // Validate category fields
-            if (category.name.isBlank() || category.color.isBlank() || category.iconName.isBlank()) {
-                return Result.failure(IllegalArgumentException("Category name, color, and icon cannot be empty"))
+            validateCategory(category)?.let { error ->
+                return Result.failure(IllegalArgumentException(error))
             }
             
             categoryDao.insert(category.toEntity())
@@ -79,8 +79,8 @@ class CategoryRepositoryImpl @Inject constructor(
             }
             
             // Validate category fields
-            if (category.name.isBlank() || category.color.isBlank() || category.iconName.isBlank()) {
-                return Result.failure(IllegalArgumentException("Category name, color, and icon cannot be empty"))
+            validateCategory(category)?.let { error ->
+                return Result.failure(IllegalArgumentException(error))
             }
             
             categoryDao.update(category.toEntity())
@@ -131,6 +131,20 @@ class CategoryRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Validates category fields for non-empty values
+     * @param category The category to validate
+     * @return Error message if validation fails, null if valid
+     */
+    private fun validateCategory(category: Category): String? {
+        return when {
+            category.name.isBlank() -> "Category name cannot be empty"
+            category.color.isBlank() -> "Category color cannot be empty"
+            category.iconName.isBlank() -> "Category icon cannot be empty"
+            else -> null
         }
     }
 }

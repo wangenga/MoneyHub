@@ -2,6 +2,7 @@ package com.finance.app.ui.category
 
 import com.finance.app.data.sync.NetworkStateObserver
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.repository.AuthRepository
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.ui.common.AsyncState
 import com.finance.app.ui.common.BaseViewModel
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
+    private val authRepository: AuthRepository,
     errorHandler: ErrorHandler,
     networkStateObserver: NetworkStateObserver
 ) : BaseViewModel(errorHandler, networkStateObserver) {
@@ -45,10 +47,16 @@ class CategoryViewModel @Inject constructor(
         
         executeWithErrorHandling(
             operation = {
-                categoryRepository.getAllCategories()
-                    .collect { categories ->
-                        _uiState.value = UiState.Success(categories)
+                authRepository.getCurrentUser().collect { user ->
+                    if (user != null) {
+                        categoryRepository.getAllCategories(user.id)
+                            .collect { categories ->
+                                _uiState.value = UiState.Success(categories)
+                            }
+                    } else {
+                        _uiState.value = UiState.Error("User not authenticated")
                     }
+                }
             },
             onError = { errorMessage ->
                 _uiState.value = createRetryableError(errorMessage) {

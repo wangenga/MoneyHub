@@ -62,10 +62,14 @@ class AddEditTransactionViewModel @Inject constructor(
     private fun loadCategories() {
         executeWithErrorHandling(
             operation = {
-                categoryRepository.getAllCategories()
-                    .collect { categories ->
-                        _categories.value = categories
+                authRepository.getCurrentUser().collect { user ->
+                    if (user != null) {
+                        categoryRepository.getAllCategories(user.id)
+                            .collect { categories ->
+                                _categories.value = categories
+                            }
                     }
+                }
             },
             onError = { errorMessage ->
                 android.util.Log.e("AddEditTransactionVM", "Error loading categories: $errorMessage")

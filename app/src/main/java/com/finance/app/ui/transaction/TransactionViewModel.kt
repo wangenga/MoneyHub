@@ -62,14 +62,18 @@ class TransactionViewModel @Inject constructor(
     private fun loadCategories() {
         executeWithErrorHandling(
             operation = {
-                categoryRepository.getAllCategories()
-                    .catch { e ->
-                        // Log error but don't fail transaction loading
-                        android.util.Log.e("TransactionViewModel", "Error loading categories", e)
+                authRepository.getCurrentUser().collect { user ->
+                    if (user != null) {
+                        categoryRepository.getAllCategories(user.id)
+                            .catch { e ->
+                                // Log error but don't fail transaction loading
+                                android.util.Log.e("TransactionViewModel", "Error loading categories", e)
+                            }
+                            .collect { categories ->
+                                _categories.value = categories
+                            }
                     }
-                    .collect { categories ->
-                        _categories.value = categories
-                    }
+                }
             }
         )
     }

@@ -31,7 +31,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
                 emptyMap()
             } else {
                 val spendingList = transactionDao.getSpendingByCategory(user.id, startDate, endDate).first()
-                val categories = categoryRepository.getAllCategories().first()
+                val categories = categoryRepository.getAllCategories(user.id).first()
                 
                 // Map category IDs to Category objects with spending amounts
                 val categoryMap = categories.associateBy { it.id }

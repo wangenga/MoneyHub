@@ -185,6 +185,141 @@ class CategoryRepositoryPropertyTest : FunSpec({
             }
         }
     }
+
+    /**
+     * **Feature: category-system-redesign, Property 4: Category validation requires non-empty fields**
+     * **Validates: Requirements 2.2**
+     * 
+     * *For any* category creation attempt where name, color, or iconName is empty or whitespace-only, 
+     * the creation should fail with a validation error.
+     */
+    test("Property 4: Category validation requires non-empty fields") {
+        checkAll(100, invalidCategoryArb()) { invalidCategory ->
+            runBlocking {
+                // Setup mocks
+                val categoryDao = mockk<CategoryDao>()
+                val syncScheduler = mockk<SyncScheduler>()
+                val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                
+                // Attempt to insert the invalid category
+                val result = repository.insertCategory(invalidCategory)
+                
+                // Verify the insertion failed with validation error
+                result.isFailure shouldBe true
+                result.exceptionOrNull().shouldBeInstanceOf<IllegalArgumentException>()
+                
+                // Verify DAO insert was never called
+                coVerify(exactly = 0) { categoryDao.insert(any()) }
+                
+                // Verify sync was not scheduled for failed insertion
+                verify(exactly = 0) { syncScheduler.schedulePostOperationSync() }
+            }
+        }
+    }
+
+    /**
+     * **Feature: category-system-redesign, Property 3: Custom category user isolation**
+     * **Validates: Requirements 2.1, 3.1**
+     * 
+     * *For any* custom category (where `isDefault = false`) created by user A, querying categories 
+     * as user B (where A ≠ B) should not include that category in the results.
+     */
+    test("Property 3: Custom category user isolation") {
+        checkAll(100, userIdArb(), userIdArb(), customCategoryArb()) { userA, userB, customCategory ->
+            // Ensure users are different
+            if (userA != userB) {
+                runBlocking {
+                    // Setup mocks
+                    val categoryDao = mockk<CategoryDao>()
+                    val syncScheduler = mockk<SyncScheduler>()
+                    val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                    
+                    // Create category for user A
+                    val categoryForUserA = customCategory.copy(userId = userA, isDefault = false)
+                    
+                    // Mock DAO to return only default categories for user B (no custom categories)
+                    val defaultCategories = DefaultCategoriesProvider.getDefaultExpenseCategories()
+                    val defaultEntities = defaultCategories.map { it.toEntity() }
+                    every { categoryDao.getAllCategoriesForUser(userB) } returns flowOf(defaultEntities)
+                    
+                    // Query categories as user B
+                    val categoriesForUserB = repository.getAllCategories(userB).first()
+                    
+                    // Verify user B cannot see user A's custom category
+                    categoriesForUserB.none { it.id == categoryForUserA.id } shouldBe true
+                    categoriesForUserB.none { it.userId == userA } shouldBe true
+                    
+                    // Verify user B only sees default categories (userId = null)
+                    categoriesForUserB.all { it.isDefault || it.userId == userB } shouldBe true
+                }
+            }
+        }
+    }
+
+    /**
+     * **Feature: category-system-redesign, Property 6: User isolation with identical names**
+     * **Validates: Requirements 2.5**
+     * 
+     * *For any* two users A and B who each create a custom category with the same name, 
+     * both categories should exist independently in the database with their respective user identifiers.
+     */
+    test("Property 6: User isolation with identical names") {
+        checkAll(100, userIdArb(), userIdArb(), Arb.string(1..50, Arb.alphanumeric())) { userA, userB, categoryName ->
+            // Ensure users are different
+            if (userA != userB) {
+                runBlocking {
+                    // Setup mocks
+                    val categoryDao = mockk<CategoryDao>()
+                    val syncScheduler = mockk<SyncScheduler>()
+                    val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                    
+                    // Create categories with identical names for both users
+                    val currentTime = System.currentTimeMillis()
+                    val categoryA = Category(
+                        id = "category_a_${userA}",
+                        userId = userA,
+                        name = categoryName,
+                        color = "#FF0000",
+                        iconName = "test_icon",
+                        categoryType = CategoryType.EXPENSE,
+                        isDefault = false,
+                        createdAt = currentTime,
+                        updatedAt = currentTime
+                    )
+                    val categoryB = Category(
+                        id = "category_b_${userB}",
+                        userId = userB,
+                        name = categoryName,
+                        color = "#00FF00",
+                        iconName = "test_icon",
+                        categoryType = CategoryType.EXPENSE,
+                        isDefault = false,
+                        createdAt = currentTime,
+                        updatedAt = currentTime
+                    )
+                    
+                    // Mock successful insertions
+                    coEvery { categoryDao.insert(any()) } returns Unit
+                    every { syncScheduler.schedulePostOperationSync() } returns Unit
+                    
+                    // Insert both categories
+                    val resultA = repository.insertCategory(categoryA)
+                    val resultB = repository.insertCategory(categoryB)
+                    
+                    // Both insertions should succeed
+                    resultA.isSuccess shouldBe true
+                    resultB.isSuccess shouldBe true
+                    
+                    // Verify both categories were inserted with their respective user IDs
+                    coVerify { categoryDao.insert(match { it.userId == userA && it.name == categoryName }) }
+                    coVerify { categoryDao.insert(match { it.userId == userB && it.name == categoryName }) }
+                    
+                    // Verify sync was scheduled for both insertions
+                    verify(exactly = 2) { syncScheduler.schedulePostOperationSync() }
+                }
+            }
+        }
+    }
 })
 
 // Arbitraries for generating test data
@@ -245,6 +380,26 @@ private fun categoryArb(
         updatedAt = System.currentTimeMillis()
     )
 }
+
+private fun invalidCategoryArb(): Arb<Category> = Arb.choice(
+    // Category with empty name
+    categoryArb(CategoryType.EXPENSE).map { it.copy(name = "") },
+    // Category with whitespace-only name
+    categoryArb(CategoryType.EXPENSE).map { it.copy(name = "   ") },
+    // Category with empty color
+    categoryArb(CategoryType.EXPENSE).map { it.copy(color = "") },
+    // Category with whitespace-only color
+    categoryArb(CategoryType.EXPENSE).map { it.copy(color = "  ") },
+    // Category with empty iconName
+    categoryArb(CategoryType.EXPENSE).map { it.copy(iconName = "") },
+    // Category with whitespace-only iconName
+    categoryArb(CategoryType.EXPENSE).map { it.copy(iconName = "   ") }
+)
+
+private fun customCategoryArb(): Arb<Category> = Arb.choice(
+    categoryArb(CategoryType.EXPENSE, isDefault = false),
+    categoryArb(CategoryType.INCOME, isDefault = false)
+)
 
 // Extension function to convert Category to CategoryEntity
 private fun Category.toEntity(): CategoryEntity = CategoryEntity(

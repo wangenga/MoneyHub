@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  * Repository interface for category operations
  */
 interface CategoryRepository {
-    fun getAllCategories(): Flow<List<Category>>
+    fun getAllCategories(userId: String): Flow<List<Category>>
     fun getCategoryById(id: String): Flow<Category?>
     fun getCategoriesByType(type: CategoryType, userId: String): Flow<List<Category>>
     fun getExpenseCategories(userId: String): Flow<List<Category>>
