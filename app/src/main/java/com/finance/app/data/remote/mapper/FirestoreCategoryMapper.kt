@@ -19,6 +19,7 @@ object FirestoreCategoryMapper {
             name = category.name,
             color = category.color,
             iconName = category.iconName,
+            categoryType = category.categoryType.name, // Convert enum to string
             isDefault = category.isDefault,
             createdAt = TimestampUtils.longToTimestamp(category.createdAt),
             updatedAt = TimestampUtils.longToTimestamp(category.updatedAt)
@@ -28,7 +29,6 @@ object FirestoreCategoryMapper {
     /**
      * Convert Firestore Category to domain Category
      * Note: userId is not stored in Firestore for categories as they can be user-specific or default
-     * Note: categoryType will be fully mapped in task 3 when FirestoreCategory is updated
      */
     fun toDomain(firestoreCategory: FirestoreCategory, userId: String?): Category {
         return Category(
@@ -37,7 +37,11 @@ object FirestoreCategoryMapper {
             name = firestoreCategory.name,
             color = firestoreCategory.color,
             iconName = firestoreCategory.iconName,
-            categoryType = CategoryType.EXPENSE, // Default for backward compatibility until Firestore model is updated
+            categoryType = when (firestoreCategory.categoryType) {
+                "INCOME" -> CategoryType.INCOME
+                "EXPENSE" -> CategoryType.EXPENSE
+                else -> CategoryType.EXPENSE // Default fallback for invalid values
+            },
             isDefault = firestoreCategory.isDefault,
             createdAt = TimestampUtils.timestampToLong(firestoreCategory.createdAt),
             updatedAt = TimestampUtils.timestampToLong(firestoreCategory.updatedAt)

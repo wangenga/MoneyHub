@@ -21,6 +21,9 @@ data class FirestoreCategory(
     @PropertyName("iconName")
     val iconName: String = "",
     
+    @PropertyName("categoryType")
+    val categoryType: String = "EXPENSE",
+    
     @PropertyName("isDefault")
     val isDefault: Boolean = false,
     
