@@ -89,7 +89,7 @@ class FinanceDatabaseTest {
         // Verify database file exists and is not readable without key
         val dbFile = context.getDatabasePath(FinanceDatabase.DATABASE_NAME)
         assertThat(dbFile.exists()).isTrue()
-        assertThat(dbFile.length()).isGreaterThan(0)
+        assertThat(dbFile.length()).isGreaterThan(0L)
     }
 
     @Test
@@ -109,6 +109,13 @@ class FinanceDatabaseTest {
         // When - Create new database with different key
         database.close()
         keyManager.clearKey()
+        
+        // Delete the database file to ensure we start fresh
+        val dbFile = context.getDatabasePath(FinanceDatabase.DATABASE_NAME)
+        if (dbFile.exists()) {
+            dbFile.delete()
+        }
+        
         val newEncryptionKey = keyManager.getDatabaseKey()
         val newDatabase = FinanceDatabase.create(context, newEncryptionKey)
         val newUserDao = newDatabase.userDao()
