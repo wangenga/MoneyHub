@@ -17,48 +17,66 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 
 /**
- * Dialog for selecting a category with icons
+ * Dialog for selecting a category with icons, filtered by transaction type
  */
 @Composable
 fun CategorySelectorDialog(
     categories: List<Category>,
     selectedCategoryId: String,
+    transactionType: CategoryType,
     onCategorySelected: (String) -> Unit,
-    onAddNewCategory: () -> Unit,
+    onAddNewCategory: (CategoryType) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val dialogTitle = when (transactionType) {
+        CategoryType.EXPENSE -> "Select Expense Category"
+        CategoryType.INCOME -> "Select Income Category"
+    }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Category") },
+        title = { Text(dialogTitle) },
         text = {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Show existing categories
-                items(categories) { category ->
-                    CategoryItem(
-                        category = category,
-                        isSelected = category.id == selectedCategoryId,
-                        onClick = { onCategorySelected(category.id) }
-                    )
-                }
-                
-                // Divider before add option
-                item {
-                    Divider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                }
-                
-                // Add New Category option
-                item {
-                    AddNewCategoryItem(onClick = onAddNewCategory)
+            if (categories.isEmpty()) {
+                EmptyStateContent(
+                    transactionType = transactionType,
+                    onAddNewCategory = { onAddNewCategory(transactionType) }
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Show existing categories
+                    items(categories) { category ->
+                        CategoryItem(
+                            category = category,
+                            isSelected = category.id == selectedCategoryId,
+                            onClick = { onCategorySelected(category.id) }
+                        )
+                    }
+                    
+                    // Divider before add option
+                    item {
+                        Divider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                    
+                    // Add New Category option
+                    item {
+                        AddNewCategoryItem(
+                            transactionType = transactionType,
+                            onClick = { onAddNewCategory(transactionType) }
+                        )
+                    }
                 }
             }
         },
@@ -70,19 +88,77 @@ fun CategorySelectorDialog(
     )
 }
 
+@Composable
+private fun EmptyStateContent(
+    transactionType: CategoryType,
+    onAddNewCategory: () -> Unit
+) {
+    val (title, description, buttonText) = when (transactionType) {
+        CategoryType.EXPENSE -> Triple(
+            "No expense categories available",
+            "You need at least one expense category to create expense transactions.",
+            "Add Expense Category"
+        )
+        CategoryType.INCOME -> Triple(
+            "No income categories yet",
+            "Create your first income category to track income sources.",
+            "Add Income Category"
+        )
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Button(
+            onClick = onAddNewCategory,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(buttonText)
+        }
+    }
+}
+
 /**
  * Item for adding a new category, styled differently from regular categories
  */
 @Composable
 private fun AddNewCategoryItem(
+    transactionType: CategoryType,
     onClick: () -> Unit
 ) {
+    val buttonText = when (transactionType) {
+        CategoryType.EXPENSE -> "Add New Expense Category"
+        CategoryType.INCOME -> "Add New Income Category"
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .semantics {
-                contentDescription = "Add new category"
+                contentDescription = buttonText
             },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -113,7 +189,7 @@ private fun AddNewCategoryItem(
 
             // Add new category text
             Text(
-                text = "Add New Category",
+                text = buttonText,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
