@@ -18,6 +18,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id")
     fun getCategoryById(id: String): Flow<CategoryEntity?>
 
+    @Query("SELECT * FROM categories WHERE id = :id")
+    suspend fun getCategoryByIdSync(id: String): CategoryEntity?
+
     @Query("""
         SELECT * FROM categories 
         WHERE categoryType = :type 

@@ -320,6 +320,155 @@ class CategoryRepositoryPropertyTest : FunSpec({
             }
         }
     }
+
+    /**
+     * **Feature: category-system-redesign, Property 5: Custom category deletion succeeds**
+     * **Validates: Requirements 2.4, 3.4**
+     * 
+     * *For any* custom category (where `isDefault = false`) with no associated transactions, 
+     * deletion should succeed and subsequent queries should not return that category.
+     */
+    test("Property 5: Custom category deletion succeeds") {
+        checkAll(100, customCategoryArb()) { customCategory ->
+            runBlocking {
+                // Setup mocks
+                val categoryDao = mockk<CategoryDao>()
+                val syncScheduler = mockk<SyncScheduler>()
+                val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                
+                // Mock that no transactions exist for this category
+                coEvery { categoryDao.getTransactionCountForCategory(customCategory.id) } returns 0
+                
+                // Mock deleteCustomCategory to return 1 (indicating successful deletion)
+                coEvery { categoryDao.deleteCustomCategory(customCategory.id) } returns 1
+                
+                // Mock sync scheduler
+                every { syncScheduler.schedulePostOperationSync() } returns Unit
+                
+                // Attempt to delete the custom category
+                val result = repository.deleteCategory(customCategory.id)
+                
+                // Verify the deletion succeeded
+                result.isSuccess shouldBe true
+                
+                // Verify deleteCustomCategory was called
+                coVerify { categoryDao.deleteCustomCategory(customCategory.id) }
+                
+                // Verify sync was scheduled for successful deletion
+                verify { syncScheduler.schedulePostOperationSync() }
+            }
+        }
+    }
+
+    /**
+     * **Feature: category-system-redesign, Property 9: Custom category update persistence**
+     * **Validates: Requirements 5.1, 5.3**
+     * 
+     * *For any* custom category, after updating its name, color, or iconName, 
+     * querying that category by ID should return the updated values.
+     */
+    test("Property 9: Custom category update persistence") {
+        checkAll(100, customCategoryArb(), Arb.string(1..50, Arb.alphanumeric()), 
+                 Arb.string(6, Arb.alphanumeric()).map { "#$it" }, 
+                 Arb.string(1..20, Arb.alphanumeric())) { originalCategory, newName, newColor, newIcon ->
+            runBlocking {
+                // Setup mocks
+                val categoryDao = mockk<CategoryDao>()
+                val syncScheduler = mockk<SyncScheduler>()
+                val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                
+                // Create updated category with new values
+                val updatedCategory = originalCategory.copy(
+                    name = newName,
+                    color = newColor,
+                    iconName = newIcon,
+                    updatedAt = System.currentTimeMillis()
+                )
+                
+                // Mock getting existing category to preserve immutable fields
+                val existingEntity = originalCategory.toEntity()
+                coEvery { categoryDao.getCategoryByIdSync(originalCategory.id) } returns existingEntity
+                
+                // Mock successful update
+                coEvery { categoryDao.update(any()) } returns Unit
+                every { syncScheduler.schedulePostOperationSync() } returns Unit
+                
+                // Attempt to update the category
+                val result = repository.updateCategory(updatedCategory)
+                
+                // Verify the update succeeded
+                result.isSuccess shouldBe true
+                
+                // Verify update was called with preserved categoryType and other immutable fields
+                coVerify { 
+                    categoryDao.update(match { entity ->
+                        entity.name == newName &&
+                        entity.color == newColor &&
+                        entity.iconName == newIcon &&
+                        entity.categoryType == originalCategory.categoryType.name &&
+                        entity.isDefault == originalCategory.isDefault &&
+                        entity.userId == originalCategory.userId &&
+                        entity.createdAt == originalCategory.createdAt
+                    })
+                }
+                
+                // Verify sync was scheduled for successful update
+                verify { syncScheduler.schedulePostOperationSync() }
+            }
+        }
+    }
+
+    /**
+     * **Feature: category-system-redesign, Property 11: Category type immutability on update**
+     * **Validates: Requirements 5.4**
+     * 
+     * *For any* category update operation, the `categoryType` field should remain unchanged 
+     * from its original value regardless of what value is provided in the update.
+     */
+    test("Property 11: Category type immutability on update") {
+        checkAll(100, customCategoryArb()) { originalCategory ->
+            runBlocking {
+                // Setup mocks
+                val categoryDao = mockk<CategoryDao>()
+                val syncScheduler = mockk<SyncScheduler>()
+                val repository = CategoryRepositoryImpl(categoryDao, syncScheduler)
+                
+                // Create updated category with different categoryType (should be ignored)
+                val oppositeType = if (originalCategory.categoryType == CategoryType.EXPENSE) 
+                    CategoryType.INCOME else CategoryType.EXPENSE
+                val updatedCategory = originalCategory.copy(
+                    categoryType = oppositeType,
+                    name = "Updated Name",
+                    updatedAt = System.currentTimeMillis()
+                )
+                
+                // Mock getting existing category
+                val existingEntity = originalCategory.toEntity()
+                coEvery { categoryDao.getCategoryByIdSync(originalCategory.id) } returns existingEntity
+                
+                // Mock successful update
+                coEvery { categoryDao.update(any()) } returns Unit
+                every { syncScheduler.schedulePostOperationSync() } returns Unit
+                
+                // Attempt to update the category
+                val result = repository.updateCategory(updatedCategory)
+                
+                // Verify the update succeeded
+                result.isSuccess shouldBe true
+                
+                // Verify update was called with original categoryType preserved
+                coVerify { 
+                    categoryDao.update(match { entity ->
+                        entity.categoryType == originalCategory.categoryType.name &&
+                        entity.name == "Updated Name"
+                    })
+                }
+                
+                // Verify sync was scheduled for successful update
+                verify { syncScheduler.schedulePostOperationSync() }
+            }
+        }
+    }
 })
 
 // Arbitraries for generating test data

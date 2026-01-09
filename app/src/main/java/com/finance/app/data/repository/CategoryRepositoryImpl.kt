@@ -83,7 +83,19 @@ class CategoryRepositoryImpl @Inject constructor(
                 return Result.failure(IllegalArgumentException(error))
             }
             
-            categoryDao.update(category.toEntity())
+            // Get existing category to preserve categoryType
+            val existingEntity = categoryDao.getCategoryByIdSync(category.id)
+                ?: return Result.failure(IllegalArgumentException("Category not found"))
+            
+            // Create updated entity preserving categoryType and other immutable fields
+            val updatedEntity = category.toEntity().copy(
+                categoryType = existingEntity.categoryType, // Preserve original categoryType
+                isDefault = existingEntity.isDefault,       // Preserve isDefault
+                createdAt = existingEntity.createdAt,       // Preserve createdAt
+                userId = existingEntity.userId              // Preserve userId
+            )
+            
+            categoryDao.update(updatedEntity)
             
             // Schedule post-operation sync for custom categories
             syncScheduler.schedulePostOperationSync()
