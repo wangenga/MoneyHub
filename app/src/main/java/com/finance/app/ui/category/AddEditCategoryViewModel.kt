@@ -24,8 +24,10 @@ class AddEditCategoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val categoryId: String? = savedStateHandle.get<String>("categoryId")
+    private val initialCategoryType: CategoryType = savedStateHandle.get<String>("categoryType")
+        ?.let { CategoryType.valueOf(it) } ?: CategoryType.EXPENSE
 
-    private val _uiState = MutableStateFlow(AddEditCategoryUiState())
+    private val _uiState = MutableStateFlow(AddEditCategoryUiState(categoryType = initialCategoryType))
     val uiState: StateFlow<AddEditCategoryUiState> = _uiState.asStateFlow()
 
     private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
@@ -51,13 +53,19 @@ class AddEditCategoryViewModel @Inject constructor(
                         name = category.name,
                         color = category.color,
                         iconName = category.iconName,
-                        categoryType = category.categoryType
+                        categoryType = category.categoryType,
+                        isDefault = category.isDefault
                     )
                 }
         }
     }
 
     fun updateName(name: String) {
+        // Prevent editing default categories
+        if (_uiState.value.isDefault) {
+            return
+        }
+        
         _uiState.value = _uiState.value.copy(
             name = name,
             nameError = null
@@ -65,18 +73,39 @@ class AddEditCategoryViewModel @Inject constructor(
     }
 
     fun updateColor(color: String) {
+        // Prevent editing default categories
+        if (_uiState.value.isDefault) {
+            return
+        }
+        
         _uiState.value = _uiState.value.copy(color = color)
     }
 
     fun updateIcon(iconName: String) {
+        // Prevent editing default categories
+        if (_uiState.value.isDefault) {
+            return
+        }
+        
         _uiState.value = _uiState.value.copy(iconName = iconName)
     }
     
     fun updateCategoryType(categoryType: CategoryType) {
+        // Prevent editing default categories and changing type in edit mode
+        if (_uiState.value.isDefault || _uiState.value.isEditMode) {
+            return
+        }
+        
         _uiState.value = _uiState.value.copy(categoryType = categoryType)
     }
 
     fun saveCategory() {
+        // Prevent saving default categories
+        if (_uiState.value.isDefault) {
+            _saveState.value = SaveState.Error("Default categories cannot be modified")
+            return
+        }
+        
         // Validate name
         if (_uiState.value.name.isBlank()) {
             _uiState.value = _uiState.value.copy(
@@ -137,6 +166,7 @@ data class AddEditCategoryUiState(
     val color: String = "#FF6B6B",
     val iconName: String = "A",
     val categoryType: CategoryType = CategoryType.EXPENSE,
+    val isDefault: Boolean = false,
     val nameError: String? = null
 )
 

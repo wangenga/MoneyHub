@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 import com.finance.app.domain.model.TransactionType
 import com.finance.app.ui.common.AsyncState
 import java.text.SimpleDateFormat
@@ -256,11 +257,15 @@ fun AddEditTransactionScreen(
         CategorySelectorDialog(
             categories = categories,
             selectedCategoryId = uiState.categoryId,
+            transactionType = when (uiState.type) {
+                TransactionType.EXPENSE -> CategoryType.EXPENSE
+                TransactionType.INCOME -> CategoryType.INCOME
+            },
             onCategorySelected = { categoryId ->
                 viewModel.updateCategory(categoryId)
                 showCategorySelector = false
             },
-            onAddNewCategory = {
+            onAddNewCategory = { categoryType ->
                 showCategorySelector = false
                 onNavigateToAddCategory()
             },

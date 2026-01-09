@@ -21,25 +21,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.CategoryType
 import com.finance.app.ui.common.AsyncState
 import com.finance.app.ui.common.UiState
 import com.finance.app.util.rememberCachedIcon
 import com.finance.app.util.IconCache
 
 /**
- * Category management screen to display and manage all categories
+ * Category management screen to display and manage all categories with type tabs
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryManagementScreen(
-    onAddCategory: () -> Unit,
+    onAddCategory: (CategoryType) -> Unit,
     onEditCategory: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val expenseCategories by viewModel.expenseCategories.collectAsState()
+    val incomeCategories by viewModel.incomeCategories.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
     
+    var selectedTab by remember { mutableStateOf(CategoryType.EXPENSE) }
     var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -76,10 +79,10 @@ fun CategoryManagementScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onAddCategory,
+                onClick = { onAddCategory(selectedTab) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.semantics {
-                    contentDescription = "Add new category"
+                    contentDescription = "Add new ${selectedTab.name.lowercase()} category"
                 }
             ) {
                 Icon(
@@ -90,39 +93,49 @@ fun CategoryManagementScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (val state = uiState) {
-                is UiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                is UiState.Success -> {
-                    if (state.data.isEmpty()) {
-                        EmptyCategoriesView(
-                            modifier = Modifier.align(Alignment.Center),
-                            onAddCategory = onAddCategory
-                        )
-                    } else {
-                        CategoryList(
-                            categories = state.data,
+            // Category Type Tabs
+            CategoryTypeTabs(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            // Category Content based on selected tab
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                when (selectedTab) {
+                    CategoryType.EXPENSE -> {
+                        CategoryTabContent(
+                            categoriesState = expenseCategories,
+                            categoryType = CategoryType.EXPENSE,
                             onCategoryClick = onEditCategory,
                             onDeleteCategory = { category ->
                                 categoryToDelete = category
                                 showDeleteDialog = true
-                            }
+                            },
+                            onAddCategory = { onAddCategory(CategoryType.EXPENSE) }
                         )
                     }
-                }
-                is UiState.Error -> {
-                    ErrorView(
-                        message = state.message,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CategoryType.INCOME -> {
+                        CategoryTabContent(
+                            categoriesState = incomeCategories,
+                            categoryType = CategoryType.INCOME,
+                            onCategoryClick = onEditCategory,
+                            onDeleteCategory = { category ->
+                                categoryToDelete = category
+                                showDeleteDialog = true
+                            },
+                            onAddCategory = { onAddCategory(CategoryType.INCOME) }
+                        )
+                    }
                 }
             }
         }
@@ -142,6 +155,82 @@ fun CategoryManagementScreen(
                 categoryToDelete = null
             }
         )
+    }
+}
+
+@Composable
+private fun CategoryTypeTabs(
+    selectedTab: CategoryType,
+    onTabSelected: (CategoryType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TabRow(
+        selectedTabIndex = if (selectedTab == CategoryType.EXPENSE) 0 else 1,
+        modifier = modifier
+    ) {
+        Tab(
+            selected = selectedTab == CategoryType.EXPENSE,
+            onClick = { onTabSelected(CategoryType.EXPENSE) },
+            text = { Text("Expense") },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.TrendingDown,
+                    contentDescription = null
+                )
+            }
+        )
+        Tab(
+            selected = selectedTab == CategoryType.INCOME,
+            onClick = { onTabSelected(CategoryType.INCOME) },
+            text = { Text("Income") },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = null
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun CategoryTabContent(
+    categoriesState: UiState<List<Category>>,
+    categoryType: CategoryType,
+    onCategoryClick: (String) -> Unit,
+    onDeleteCategory: (Category) -> Unit,
+    onAddCategory: () -> Unit
+) {
+    when (categoriesState) {
+        is UiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        is UiState.Success -> {
+            if (categoriesState.data.isEmpty()) {
+                EmptyCategoriesView(
+                    categoryType = categoryType,
+                    modifier = Modifier.fillMaxSize(),
+                    onAddCategory = onAddCategory
+                )
+            } else {
+                CategoryList(
+                    categories = categoriesState.data,
+                    onCategoryClick = onCategoryClick,
+                    onDeleteCategory = onDeleteCategory
+                )
+            }
+        }
+        is UiState.Error -> {
+            ErrorView(
+                message = categoriesState.message,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -297,9 +386,23 @@ private fun CategoryItem(
 
 @Composable
 private fun EmptyCategoriesView(
+    categoryType: CategoryType,
     modifier: Modifier = Modifier,
     onAddCategory: () -> Unit
 ) {
+    val (title, description, buttonText) = when (categoryType) {
+        CategoryType.EXPENSE -> Triple(
+            "No expense categories yet",
+            "Tap the + button to create your first expense category",
+            "Add Expense Category"
+        )
+        CategoryType.INCOME -> Triple(
+            "No income categories yet",
+            "Create income categories to organize your income sources",
+            "Add Income Category"
+        )
+    }
+    
     Column(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -312,12 +415,12 @@ private fun EmptyCategoriesView(
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "No categories yet",
+            text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Tap the + button to create your first category",
+            text = description,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -328,7 +431,7 @@ private fun EmptyCategoriesView(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Add Category")
+            Text(buttonText)
         }
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.finance.app.domain.model.CategoryType
 
 /**
  * Screen for adding or editing a category
@@ -68,7 +69,7 @@ fun AddEditCategoryScreen(
                 actions = {
                     TextButton(
                         onClick = { viewModel.saveCategory() },
-                        enabled = saveState !is SaveState.Saving
+                        enabled = saveState !is SaveState.Saving && !uiState.isDefault
                     ) {
                         if (saveState is SaveState.Saving) {
                             CircularProgressIndicator(
@@ -91,12 +92,26 @@ fun AddEditCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // Show default category warning if editing a default category
+            if (uiState.isDefault) {
+                DefaultCategoryWarning()
+            }
+            
             // Preview Card
             CategoryPreviewCard(
                 name = uiState.name.ifBlank { "Category Name" },
                 color = uiState.color,
-                iconName = uiState.iconName
+                iconName = uiState.iconName,
+                categoryType = uiState.categoryType
             )
+
+            // Category Type Selector (only for new categories)
+            if (!uiState.isEditMode) {
+                CategoryTypeSelector(
+                    selectedType = uiState.categoryType,
+                    onTypeSelected = { viewModel.updateCategoryType(it) }
+                )
+            }
 
             // Name Field
             OutlinedTextField(
@@ -113,20 +128,23 @@ fun AddEditCategoryScreen(
                 supportingText = uiState.nameError?.let { { Text(it) } },
                 placeholder = { Text("e.g., Groceries, Shopping") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                enabled = !uiState.isDefault
             )
 
             // Color Selector
             ColorSelector(
                 selectedColor = uiState.color,
-                onClick = { showColorPicker = true }
+                onClick = { if (!uiState.isDefault) showColorPicker = true },
+                enabled = !uiState.isDefault
             )
 
             // Icon Selector
             IconSelector(
                 selectedIcon = uiState.iconName,
                 color = uiState.color,
-                onClick = { showIconSelector = true }
+                onClick = { if (!uiState.isDefault) showIconSelector = true },
+                enabled = !uiState.isDefault
             )
 
             // Error message
@@ -185,10 +203,98 @@ fun AddEditCategoryScreen(
 }
 
 @Composable
+private fun DefaultCategoryWarning() {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "This is a default category and cannot be modified. Default categories are provided by the system for all users.",
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryTypeSelector(
+    selectedType: CategoryType,
+    onTypeSelected: (CategoryType) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Category Type",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CategoryTypeChip(
+                categoryType = CategoryType.EXPENSE,
+                isSelected = selectedType == CategoryType.EXPENSE,
+                onClick = { onTypeSelected(CategoryType.EXPENSE) },
+                modifier = Modifier.weight(1f)
+            )
+            CategoryTypeChip(
+                categoryType = CategoryType.INCOME,
+                isSelected = selectedType == CategoryType.INCOME,
+                onClick = { onTypeSelected(CategoryType.INCOME) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryTypeChip(
+    categoryType: CategoryType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val (text, icon) = when (categoryType) {
+        CategoryType.EXPENSE -> "Expense" to Icons.Default.TrendingDown
+        CategoryType.INCOME -> "Income" to Icons.Default.TrendingUp
+    }
+    
+    @OptIn(ExperimentalMaterial3Api::class)
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = { Text(text) },
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
 private fun CategoryPreviewCard(
     name: String,
     color: String,
-    iconName: String
+    iconName: String,
+    categoryType: CategoryType
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -229,6 +335,27 @@ private fun CategoryPreviewCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
+            
+            // Category type indicator
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = when (categoryType) {
+                        CategoryType.EXPENSE -> Icons.Default.TrendingDown
+                        CategoryType.INCOME -> Icons.Default.TrendingUp
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = categoryType.name.lowercase().replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -236,7 +363,8 @@ private fun CategoryPreviewCard(
 @Composable
 private fun ColorSelector(
     selectedColor: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     val colorName = namedColors.find { it.hex == selectedColor }?.name ?: "Custom"
     
@@ -244,15 +372,16 @@ private fun ColorSelector(
         Text(
             text = "Color",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
         
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(enabled = enabled, onClick = onClick),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
             ),
             border = CardDefaults.outlinedCardBorder()
         ) {
@@ -275,13 +404,15 @@ private fun ColorSelector(
                     )
                     Text(
                         text = colorName,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Select color"
+                    contentDescription = "Select color",
+                    tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -292,21 +423,23 @@ private fun ColorSelector(
 private fun IconSelector(
     selectedIcon: String,
     color: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Letter",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
         
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(enabled = enabled, onClick = onClick),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
             ),
             border = CardDefaults.outlinedCardBorder()
         ) {
@@ -337,13 +470,15 @@ private fun IconSelector(
                     }
                     Text(
                         text = "Letter: $selectedIcon",
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Select letter"
+                    contentDescription = "Select letter",
+                    tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
