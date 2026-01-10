@@ -92,7 +92,11 @@ fun AppNavigation(
             composable(NavigationRoutes.LOGIN) {
                 AuthNavigation(
                     onAuthenticationComplete = {
-                        // Authentication handled by LaunchedEffect above
+                        // Force navigation to main after successful authentication
+                        android.util.Log.d("AppNavigation", "Authentication completed, navigating to main")
+                        navController.navigate(NavigationRoutes.MAIN_GRAPH) {
+                            popUpTo(NavigationRoutes.AUTH_GRAPH) { inclusive = true }
+                        }
                     },
                     onGoogleSignIn = {
                         android.util.Log.d("AppNavigation", "Google Sign-In requested")

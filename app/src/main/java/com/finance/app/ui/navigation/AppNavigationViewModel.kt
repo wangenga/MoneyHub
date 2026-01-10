@@ -72,7 +72,8 @@ class AppNavigationViewModel @Inject constructor(
             !authenticated -> NavigationState.AUTH
             authenticated && biometricAuthenticator.isBiometricEnabled() && 
                 biometricAuthenticator.isBiometricAvailable() && !biometricUnlocked -> NavigationState.BIOMETRIC_LOCK
-            else -> NavigationState.MAIN
+            authenticated -> NavigationState.MAIN
+            else -> NavigationState.AUTH
         }
     }
 }

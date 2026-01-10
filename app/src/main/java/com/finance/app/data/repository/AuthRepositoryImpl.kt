@@ -27,17 +27,22 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signInWithEmail(email: String, password: String): Result<User> {
         return try {
+            android.util.Log.d("AuthRepository", "Starting Firebase signInWithEmailAndPassword")
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = authResult.user
                 ?: return Result.failure(Exception("Authentication failed: User is null"))
 
+            android.util.Log.d("AuthRepository", "Firebase auth successful, creating user object")
             val user = firebaseUser.toUser()
             
             // Save user to local database
+            android.util.Log.d("AuthRepository", "Saving user to local database")
             userDao.insert(user.toEntity())
             
+            android.util.Log.d("AuthRepository", "Authentication completed successfully")
             Result.success(user)
         } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "Authentication failed with exception", e)
             Result.failure(e)
         }
     }

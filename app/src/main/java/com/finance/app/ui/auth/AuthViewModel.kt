@@ -22,23 +22,28 @@ class AuthViewModel @Inject constructor(
     val registerState: StateFlow<AuthUiState> = _registerState.asStateFlow()
     
     fun signInWithEmail(email: String, password: String) {
+        android.util.Log.d("AuthViewModel", "signInWithEmail called with email: $email")
         _loginState.value = AuthUiState.Loading
         
         viewModelScope.launch {
             try {
+                android.util.Log.d("AuthViewModel", "Attempting Firebase authentication...")
                 val result = authRepository.signInWithEmail(email, password)
                 
                 result.fold(
                     onSuccess = { user ->
+                        android.util.Log.d("AuthViewModel", "Authentication successful for user: ${user.id}")
                         _loginState.value = AuthUiState.Success("Login successful!")
                     },
                     onFailure = { exception ->
+                        android.util.Log.e("AuthViewModel", "Authentication failed", exception)
                         _loginState.value = AuthUiState.Error(
                             exception.message ?: "Login failed"
                         )
                     }
                 )
             } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Unexpected error during authentication", e)
                 _loginState.value = AuthUiState.Error(
                     e.message ?: "An unexpected error occurred"
                 )
