@@ -67,15 +67,23 @@ fun LoginScreen(
     
     // Handle login state changes
     LaunchedEffect(loginState) {
+        android.util.Log.d("LoginScreen", "Login state changed: $loginState")
         when (val state = loginState) {
             is AuthUiState.Success -> {
+                android.util.Log.d("LoginScreen", "Login successful, calling onLoginSuccess")
                 onLoginSuccess()
                 viewModel.resetLoginState()
             }
             is AuthUiState.Error -> {
+                android.util.Log.e("LoginScreen", "Login error: ${state.message}")
                 // Error is displayed in the UI
             }
-            else -> { /* Do nothing */ }
+            is AuthUiState.Loading -> {
+                android.util.Log.d("LoginScreen", "Login in progress...")
+            }
+            else -> { 
+                android.util.Log.d("LoginScreen", "Login state: idle")
+            }
         }
     }
     

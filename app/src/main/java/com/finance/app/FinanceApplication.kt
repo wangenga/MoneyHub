@@ -4,11 +4,16 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.domain.sync.SyncScheduler
 import com.finance.app.util.ActivityProvider
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -22,6 +27,12 @@ class FinanceApplication : Application(), Configuration.Provider {
     
     @Inject
     lateinit var activityProvider: ActivityProvider
+    
+    @Inject
+    lateinit var categoryRepository: CategoryRepository
+    
+    // Application scope for initialization tasks
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     
     override fun onCreate() {
         super.onCreate()
@@ -38,6 +49,22 @@ class FinanceApplication : Application(), Configuration.Provider {
             }
         } catch (e: Exception) {
             Log.e("FinanceApp", "Firebase initialization failed", e)
+        }
+        
+        // Initialize default categories on app startup
+        applicationScope.launch {
+            try {
+                categoryRepository.initializeDefaultCategories().fold(
+                    onSuccess = {
+                        Log.d("FinanceApp", "Default categories initialized successfully")
+                    },
+                    onFailure = { error ->
+                        Log.e("FinanceApp", "Failed to initialize default categories", error)
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("FinanceApp", "Default category initialization failed", e)
+            }
         }
         
         // Initialize periodic sync on app startup

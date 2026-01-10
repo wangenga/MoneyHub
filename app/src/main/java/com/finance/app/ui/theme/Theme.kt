@@ -108,7 +108,7 @@ private val FinanceDarkColorScheme = darkColorScheme(
 @Composable
 fun FinanceAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Disable dynamic colors to ensure consistent theming
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
