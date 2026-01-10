@@ -29,7 +29,7 @@ object DefaultCategoriesProvider {
                 userId = null,
                 name = "Transport",
                 color = "#2196F3",  // Blue
-                iconName = "directions_car",
+                iconName = "T",
                 categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
@@ -40,7 +40,7 @@ object DefaultCategoriesProvider {
                 userId = null,
                 name = "Rent",
                 color = "#9C27B0",  // Purple
-                iconName = "home",
+                iconName = "R",
                 categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
@@ -51,7 +51,7 @@ object DefaultCategoriesProvider {
                 userId = null,
                 name = "Groceries",
                 color = "#4CAF50",  // Green
-                iconName = "shopping_cart",
+                iconName = "G",
                 categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,
@@ -62,7 +62,7 @@ object DefaultCategoriesProvider {
                 userId = null,
                 name = "Entertainment",
                 color = "#FF9800",  // Orange
-                iconName = "movie",
+                iconName = "E",
                 categoryType = CategoryType.EXPENSE,
                 isDefault = true,
                 createdAt = currentTime,

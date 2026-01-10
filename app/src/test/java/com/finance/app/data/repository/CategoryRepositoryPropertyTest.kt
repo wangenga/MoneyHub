@@ -469,6 +469,57 @@ class CategoryRepositoryPropertyTest : FunSpec({
             }
         }
     }
+
+    /**
+     * Unit test for default category initialization functionality.
+     * Verifies that initialization works correctly when no defaults exist
+     * and skips initialization when defaults already exist.
+     */
+    test("Default category initialization works correctly") {
+        runBlocking {
+            // Test case 1: No existing defaults - should initialize
+            val categoryDao1 = mockk<CategoryDao>()
+            val syncScheduler1 = mockk<SyncScheduler>()
+            val repository1 = CategoryRepositoryImpl(categoryDao1, syncScheduler1)
+            
+            // Mock no existing defaults
+            coEvery { categoryDao1.getDefaultCategories() } returns emptyList()
+            coEvery { categoryDao1.insertAll(any()) } just Runs
+            
+            // Call initialization
+            val result1 = repository1.initializeDefaultCategories()
+            
+            // Verify success and that insertAll was called with 4 default categories
+            result1.isSuccess shouldBe true
+            coVerify { categoryDao1.insertAll(match { it.size == 4 && it.all { entity -> entity.isDefault } }) }
+            
+            // Test case 2: Existing defaults - should skip initialization
+            val categoryDao2 = mockk<CategoryDao>()
+            val syncScheduler2 = mockk<SyncScheduler>()
+            val repository2 = CategoryRepositoryImpl(categoryDao2, syncScheduler2)
+            
+            // Mock existing defaults
+            val existingDefault = CategoryEntity(
+                id = "default_transport",
+                userId = null,
+                name = "Transport",
+                color = "#2196F3",
+                iconName = "T",
+                categoryType = "EXPENSE",
+                isDefault = true,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            coEvery { categoryDao2.getDefaultCategories() } returns listOf(existingDefault)
+            
+            // Call initialization
+            val result2 = repository2.initializeDefaultCategories()
+            
+            // Verify success and that insertAll was NOT called
+            result2.isSuccess shouldBe true
+            coVerify(exactly = 0) { categoryDao2.insertAll(any()) }
+        }
+    }
 })
 
 // Arbitraries for generating test data

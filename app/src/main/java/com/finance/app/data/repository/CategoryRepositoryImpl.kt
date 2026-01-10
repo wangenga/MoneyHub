@@ -137,6 +137,14 @@ class CategoryRepositoryImpl @Inject constructor(
 
     override suspend fun initializeDefaultCategories(): Result<Unit> {
         return try {
+            // Check if default categories already exist
+            val existingDefaults = categoryDao.getDefaultCategories()
+            if (existingDefaults.isNotEmpty()) {
+                // Defaults already exist, no need to initialize
+                return Result.success(Unit)
+            }
+            
+            // Insert default categories using fixed IDs to prevent duplicates
             val defaultCategories = DefaultCategoriesProvider.getDefaultExpenseCategories()
             val defaultEntities = defaultCategories.map { it.toEntity() }
             categoryDao.insertAll(defaultEntities)

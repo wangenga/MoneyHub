@@ -159,17 +159,12 @@ private fun colorArb(): Arb<String> = Arb.choice(
 )
 
 /**
- * Arbitrary generator for Material icon names
+ * Arbitrary generator for icon names (single letters as used in the system)
  */
 private fun iconArb(): Arb<String> = Arb.choice(
-    Arb.constant("directions_car"),
-    Arb.constant("home"),
-    Arb.constant("shopping_cart"),
-    Arb.constant("movie"),
-    Arb.constant("restaurant"),
-    Arb.constant("local_gas_station"),
-    Arb.constant("school"),
-    Arb.constant("work"),
-    Arb.constant("favorite"),
-    Arb.constant("star")
+    Arb.constant("T"),  // Transport
+    Arb.constant("R"),  // Rent
+    Arb.constant("G"),  // Groceries
+    Arb.constant("E"),  // Entertainment
+    Arb.string(1..1).filter { it.isLetter() && it.isUpperCase() }  // Other single uppercase letters
 )
