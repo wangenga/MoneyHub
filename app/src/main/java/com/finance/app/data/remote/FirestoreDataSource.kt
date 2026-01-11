@@ -1,11 +1,14 @@
 package com.finance.app.data.remote
 
+import com.finance.app.data.remote.mapper.FirestoreBudgetMapper
 import com.finance.app.data.remote.mapper.FirestoreCategoryMapper
 import com.finance.app.data.remote.mapper.FirestoreTransactionMapper
 import com.finance.app.data.remote.mapper.FirestoreUserMapper
+import com.finance.app.data.remote.model.FirestoreBudget
 import com.finance.app.data.remote.model.FirestoreCategory
 import com.finance.app.data.remote.model.FirestoreTransaction
 import com.finance.app.data.remote.model.FirestoreUser
+import com.finance.app.domain.model.Budget
 import com.finance.app.domain.model.Category
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.User
@@ -28,6 +31,7 @@ class FirestoreDataSource @Inject constructor(
         private const val USERS_COLLECTION = "users"
         private const val TRANSACTIONS_COLLECTION = "transactions"
         private const val CATEGORIES_COLLECTION = "categories"
+        private const val BUDGETS_COLLECTION = "budgets"
     }
     
     // User operations
@@ -271,6 +275,112 @@ class FirestoreDataSource @Inject constructor(
                 val firestoreCategory = FirestoreCategoryMapper.toFirestore(category)
                 val categoryRef = userDocRef.collection(CATEGORIES_COLLECTION).document(category.id)
                 batch.set(categoryRef, firestoreCategory)
+            }
+            
+            batch.commit().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Budget operations
+    
+    /**
+     * Save budget to Firestore
+     */
+    suspend fun saveBudget(userId: String, budget: Budget): Result<Unit> {
+        return try {
+            val firestoreBudget = FirestoreBudgetMapper.toFirestore(budget)
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(BUDGETS_COLLECTION)
+                .document(budget.id)
+                .set(firestoreBudget)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get all budgets for a user from Firestore
+     */
+    suspend fun getBudgets(userId: String): Result<List<Budget>> {
+        return try {
+            val querySnapshot = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(BUDGETS_COLLECTION)
+                .orderBy("year", Query.Direction.DESCENDING)
+                .orderBy("month", Query.Direction.DESCENDING)
+                .get()
+                .await()
+            
+            val budgets = querySnapshot.documents.mapNotNull { document ->
+                document.toObject(FirestoreBudget::class.java)?.let { firestoreBudget ->
+                    FirestoreBudgetMapper.toDomain(firestoreBudget, userId)
+                }
+            }
+            Result.success(budgets)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get budgets updated after a specific timestamp
+     */
+    suspend fun getBudgetsUpdatedAfter(userId: String, timestamp: Long): Result<List<Budget>> {
+        return try {
+            val querySnapshot = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(BUDGETS_COLLECTION)
+                .whereGreaterThan("updatedAt", com.google.firebase.Timestamp(timestamp / 1000, 0))
+                .orderBy("updatedAt")
+                .get()
+                .await()
+            
+            val budgets = querySnapshot.documents.mapNotNull { document ->
+                document.toObject(FirestoreBudget::class.java)?.let { firestoreBudget ->
+                    FirestoreBudgetMapper.toDomain(firestoreBudget, userId)
+                }
+            }
+            Result.success(budgets)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Delete budget from Firestore
+     */
+    suspend fun deleteBudget(userId: String, budgetId: String): Result<Unit> {
+        return try {
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(BUDGETS_COLLECTION)
+                .document(budgetId)
+                .delete()
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Batch save multiple budgets
+     */
+    suspend fun saveBudgetsBatch(userId: String, budgets: List<Budget>): Result<Unit> {
+        return try {
+            val batch = firestore.batch()
+            val userDocRef = firestore.collection(USERS_COLLECTION).document(userId)
+            
+            budgets.forEach { budget ->
+                val firestoreBudget = FirestoreBudgetMapper.toFirestore(budget)
+                val budgetRef = userDocRef.collection(BUDGETS_COLLECTION).document(budget.id)
+                batch.set(budgetRef, firestoreBudget)
             }
             
             batch.commit().await()

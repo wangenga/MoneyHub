@@ -24,3 +24,16 @@ enum class TransactionType {
 enum class SyncStatus {
     SYNCED, PENDING, FAILED
 }
+
+/**
+ * Extension function to validate a Transaction instance
+ */
+fun Transaction.isValid(): Boolean {
+    return id.isNotBlank() &&
+            userId.isNotBlank() &&
+            amount > 0.0 &&
+            categoryId.isNotBlank() &&
+            date > 0 &&
+            createdAt > 0 &&
+            updatedAt > 0
+}
