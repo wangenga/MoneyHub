@@ -166,5 +166,5 @@ private fun iconArb(): Arb<String> = Arb.choice(
     Arb.constant("R"),  // Rent
     Arb.constant("G"),  // Groceries
     Arb.constant("E"),  // Entertainment
-    Arb.string(1..1).filter { it.isLetter() && it.isUpperCase() }  // Other single uppercase letters
+    Arb.string(1..1).filter { it.length == 1 && it[0].isLetter() && it[0].isUpperCase() }  // Other single uppercase letters
 )
