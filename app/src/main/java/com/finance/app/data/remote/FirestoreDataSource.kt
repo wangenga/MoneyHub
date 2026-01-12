@@ -2,14 +2,17 @@ package com.finance.app.data.remote
 
 import com.finance.app.data.remote.mapper.FirestoreBudgetMapper
 import com.finance.app.data.remote.mapper.FirestoreCategoryMapper
+import com.finance.app.data.remote.mapper.FirestoreRecurringTransactionMapper
 import com.finance.app.data.remote.mapper.FirestoreTransactionMapper
 import com.finance.app.data.remote.mapper.FirestoreUserMapper
 import com.finance.app.data.remote.model.FirestoreBudget
 import com.finance.app.data.remote.model.FirestoreCategory
+import com.finance.app.data.remote.model.FirestoreRecurringTransaction
 import com.finance.app.data.remote.model.FirestoreTransaction
 import com.finance.app.data.remote.model.FirestoreUser
 import com.finance.app.domain.model.Budget
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.RecurringTransaction
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.model.User
 import com.google.firebase.firestore.FirebaseFirestore
@@ -32,6 +35,7 @@ class FirestoreDataSource @Inject constructor(
         private const val TRANSACTIONS_COLLECTION = "transactions"
         private const val CATEGORIES_COLLECTION = "categories"
         private const val BUDGETS_COLLECTION = "budgets"
+        private const val RECURRING_TRANSACTIONS_COLLECTION = "recurring_transactions"
     }
     
     // User operations
@@ -381,6 +385,111 @@ class FirestoreDataSource @Inject constructor(
                 val firestoreBudget = FirestoreBudgetMapper.toFirestore(budget)
                 val budgetRef = userDocRef.collection(BUDGETS_COLLECTION).document(budget.id)
                 batch.set(budgetRef, firestoreBudget)
+            }
+            
+            batch.commit().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Recurring Transaction operations
+    
+    /**
+     * Save recurring transaction to Firestore
+     */
+    suspend fun saveRecurringTransaction(userId: String, recurringTransaction: RecurringTransaction): Result<Unit> {
+        return try {
+            val firestoreRecurringTransaction = FirestoreRecurringTransactionMapper.toFirestore(recurringTransaction)
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(RECURRING_TRANSACTIONS_COLLECTION)
+                .document(recurringTransaction.id)
+                .set(firestoreRecurringTransaction)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get all recurring transactions for a user from Firestore
+     */
+    suspend fun getRecurringTransactions(userId: String): Result<List<RecurringTransaction>> {
+        return try {
+            val querySnapshot = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(RECURRING_TRANSACTIONS_COLLECTION)
+                .orderBy("updatedAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+            
+            val recurringTransactions = querySnapshot.documents.mapNotNull { document ->
+                document.toObject(FirestoreRecurringTransaction::class.java)?.let { firestoreRecurringTransaction ->
+                    FirestoreRecurringTransactionMapper.toDomain(firestoreRecurringTransaction, userId)
+                }
+            }
+            Result.success(recurringTransactions)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get recurring transactions updated after a specific timestamp
+     */
+    suspend fun getRecurringTransactionsUpdatedAfter(userId: String, timestamp: Long): Result<List<RecurringTransaction>> {
+        return try {
+            val querySnapshot = firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(RECURRING_TRANSACTIONS_COLLECTION)
+                .whereGreaterThan("updatedAt", com.google.firebase.Timestamp(timestamp / 1000, 0))
+                .orderBy("updatedAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+            
+            val recurringTransactions = querySnapshot.documents.mapNotNull { document ->
+                document.toObject(FirestoreRecurringTransaction::class.java)?.let { firestoreRecurringTransaction ->
+                    FirestoreRecurringTransactionMapper.toDomain(firestoreRecurringTransaction, userId)
+                }
+            }
+            Result.success(recurringTransactions)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Delete recurring transaction from Firestore
+     */
+    suspend fun deleteRecurringTransaction(userId: String, recurringTransactionId: String): Result<Unit> {
+        return try {
+            firestore.collection(USERS_COLLECTION)
+                .document(userId)
+                .collection(RECURRING_TRANSACTIONS_COLLECTION)
+                .document(recurringTransactionId)
+                .delete()
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Batch save multiple recurring transactions
+     */
+    suspend fun saveRecurringTransactionsBatch(userId: String, recurringTransactions: List<RecurringTransaction>): Result<Unit> {
+        return try {
+            val batch = firestore.batch()
+            val userDocRef = firestore.collection(USERS_COLLECTION).document(userId)
+            
+            recurringTransactions.forEach { recurringTransaction ->
+                val firestoreRecurringTransaction = FirestoreRecurringTransactionMapper.toFirestore(recurringTransaction)
+                val recurringTransactionRef = userDocRef.collection(RECURRING_TRANSACTIONS_COLLECTION).document(recurringTransaction.id)
+                batch.set(recurringTransactionRef, firestoreRecurringTransaction)
             }
             
             batch.commit().await()
