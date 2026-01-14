@@ -20,6 +20,9 @@ object NavigationRoutes {
     const val TRANSACTION_LIST = "transaction_list"
     const val ADD_TRANSACTION = "add_transaction"
     const val EDIT_TRANSACTION = "edit_transaction/{transactionId}"
+    const val RECURRING_TRANSACTION_LIST = "recurring_transaction_list"
+    const val ADD_RECURRING_TRANSACTION = "add_recurring_transaction"
+    const val EDIT_RECURRING_TRANSACTION = "edit_recurring_transaction/{recurringTransactionId}"
     
     // Category routes
     const val CATEGORY_MANAGEMENT = "category_management"
@@ -45,4 +48,5 @@ object NavigationRoutes {
     // Helper functions for parameterized routes
     fun editTransaction(transactionId: String) = "edit_transaction/$transactionId"
     fun editCategory(categoryId: String) = "edit_category/$categoryId"
+    fun editRecurringTransaction(recurringTransactionId: String) = "edit_recurring_transaction/$recurringTransactionId"
 }

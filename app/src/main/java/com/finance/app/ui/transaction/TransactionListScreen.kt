@@ -268,15 +268,19 @@ private fun TransactionItem(
         size = 48.dp
     )
     
+    // Check if this transaction is from a recurring series (has notes indicating it)
+    val isRecurring = transaction.notes?.contains("[Recurring]") == true
+    
     // Create comprehensive content description for the transaction item
-    val transactionDescription = remember(category?.name, formattedAmount, formattedDate, transaction.notes) {
+    val transactionDescription = remember(category?.name, formattedAmount, formattedDate, transaction.notes, isRecurring) {
+        val recurringText = if (isRecurring) ", Recurring transaction" else ""
         createTransactionContentDescription(
             category = category?.name ?: "Unknown category",
             amount = formattedAmount,
             date = formattedDate,
             notes = transaction.notes,
             actionHint = "Double tap to edit"
-        )
+        ) + recurringText
     }
     
     Card(
@@ -323,11 +327,24 @@ private fun TransactionItem(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = category?.name ?: "Unknown",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = category?.name ?: "Unknown",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (isRecurring) {
+                            Icon(
+                                imageVector = Icons.Default.Repeat,
+                                contentDescription = "Recurring transaction",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Text(
                         text = formattedDate,
                         style = MaterialTheme.typography.bodySmall,

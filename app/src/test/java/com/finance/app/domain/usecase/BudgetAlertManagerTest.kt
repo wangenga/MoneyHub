@@ -6,6 +6,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.double
+import io.kotest.property.checkAll
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -169,5 +172,72 @@ class BudgetAlertManagerTest : FunSpec({
         alert.message.contains("75.0%") shouldBe true
         alert.message.contains("Food") shouldBe true
         alert.message.contains("25.00") shouldBe true // Remaining amount
+    }
+    
+    /**
+     * **Feature: budget-and-recurring-transactions, Property 3: Budget alert threshold accuracy**
+     * **Validates: Requirements 2.1, 2.2, 2.3**
+     * 
+     * *For any* category budget and spending amount, alerts should be generated if and only if 
+     * spending reaches the correct thresholds (75% warning, 90% critical, 100% over-budget).
+     * 
+     * This property test runs 20 iterations with randomly generated budget limits and spending
+     * amounts to verify that the alert system consistently generates the correct alert level
+     * based on utilization percentage thresholds.
+     */
+    test("property3_budgetAlertThresholdAccuracy_alertsGeneratedAtCorrectThresholds") {
+        // Generate random budget limits (positive values)
+        val budgetLimits = Arb.double(min = 1.0, max = 10_000.0)
+        // Generate random spending amounts (non-negative values)
+        val spendingAmounts = Arb.double(min = 0.0, max = 15_000.0)
+        
+        checkAll(20, budgetLimits, spendingAmounts) { budgetLimit, spending ->
+            // Given
+            val userId = "user_test"
+            val month = 12
+            val year = 2024
+            
+            val utilization = BudgetUtilization.create(
+                categoryId = "test_category",
+                categoryName = "Test Category",
+                budgetLimit = budgetLimit,
+                currentSpending = spending
+            )
+            
+            every { 
+                budgetCalculationUseCase.calculateBudgetUtilization(userId, month, year)
+            } returns flowOf(listOf(utilization))
+            
+            // When
+            val alerts = alertManager.monitorBudgetAlertsForMonth(userId, month, year).first()
+            
+            // Then - verify alert generation matches threshold rules
+            val utilizationPercentage = (spending / budgetLimit) * 100.0
+            
+            when {
+                utilizationPercentage >= 100.0 -> {
+                    // Should generate OVER_BUDGET alert
+                    alerts shouldHaveSize 1
+                    alerts[0].alertLevel shouldBe AlertLevel.OVER_BUDGET
+                    alerts[0].utilizationPercentage shouldBe utilizationPercentage
+                }
+                utilizationPercentage >= 90.0 -> {
+                    // Should generate CRITICAL alert
+                    alerts shouldHaveSize 1
+                    alerts[0].alertLevel shouldBe AlertLevel.CRITICAL
+                    alerts[0].utilizationPercentage shouldBe utilizationPercentage
+                }
+                utilizationPercentage >= 75.0 -> {
+                    // Should generate WARNING alert
+                    alerts shouldHaveSize 1
+                    alerts[0].alertLevel shouldBe AlertLevel.WARNING
+                    alerts[0].utilizationPercentage shouldBe utilizationPercentage
+                }
+                else -> {
+                    // Should NOT generate any alert (NORMAL level)
+                    alerts shouldHaveSize 0
+                }
+            }
+        }
     }
 })
