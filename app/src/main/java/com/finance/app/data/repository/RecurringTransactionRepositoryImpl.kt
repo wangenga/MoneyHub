@@ -13,12 +13,15 @@ import com.finance.app.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 /**
  * Implementation of RecurringTransactionRepository using Room database and Firestore
  * Handles recurring transaction CRUD operations with validation and sync status management
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RecurringTransactionRepositoryImpl @Inject constructor(
     private val recurringTransactionDao: RecurringTransactionDao,
     private val firestoreDataSource: FirestoreDataSource,
@@ -27,25 +30,25 @@ class RecurringTransactionRepositoryImpl @Inject constructor(
 ) : RecurringTransactionRepository {
 
     override fun getRecurringTransactions(): Flow<List<RecurringTransaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                recurringTransactionDao.getRecurringTransactionsForUser(user.id)
-                    .first()
-                    .map { it.toDomain() }
+                recurringTransactionDao.getRecurringTransactionsForUser(user.id).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
 
     override fun getActiveRecurringTransactions(): Flow<List<RecurringTransaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                recurringTransactionDao.getActiveRecurringTransactionsForUser(user.id)
-                    .first()
-                    .map { it.toDomain() }
+                recurringTransactionDao.getActiveRecurringTransactionsForUser(user.id).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }

@@ -11,12 +11,15 @@ import com.finance.app.domain.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 /**
  * Implementation of TransactionRepository using Room database
  * Handles transaction CRUD operations with validation and sync status management
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val authRepository: AuthRepository,
@@ -24,21 +27,25 @@ class TransactionRepositoryImpl @Inject constructor(
 ) : TransactionRepository {
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getAllTransactions(user.id).first().map { it.toDomain() }
+                transactionDao.getAllTransactions(user.id).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
 
     override fun getTransactionsPaginated(limit: Int, offset: Int): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getTransactionsPaginated(user.id, limit, offset).first().map { it.toDomain() }
+                transactionDao.getTransactionsPaginated(user.id, limit, offset).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
@@ -50,49 +57,49 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override fun getTransactionsByDateRange(start: Long, end: Long): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getTransactionsByDateRange(user.id, start, end)
-                    .first()
-                    .map { it.toDomain() }
+                transactionDao.getTransactionsByDateRange(user.id, start, end).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
 
     override fun getTransactionsByDateRangePaginated(start: Long, end: Long, limit: Int, offset: Int): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getTransactionsByDateRangePaginated(user.id, start, end, limit, offset)
-                    .first()
-                    .map { it.toDomain() }
+                transactionDao.getTransactionsByDateRangePaginated(user.id, start, end, limit, offset).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
 
     override fun getTransactionsByCategory(categoryId: String): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getTransactionsByCategory(user.id, categoryId)
-                    .first()
-                    .map { it.toDomain() }
+                transactionDao.getTransactionsByCategory(user.id, categoryId).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }
 
     override fun getTransactionsByCategoryPaginated(categoryId: String, limit: Int, offset: Int): Flow<List<Transaction>> {
-        return authRepository.getCurrentUser().map { user ->
+        return authRepository.getCurrentUser().flatMapLatest { user ->
             if (user != null) {
-                transactionDao.getTransactionsByCategoryPaginated(user.id, categoryId, limit, offset)
-                    .first()
-                    .map { it.toDomain() }
+                transactionDao.getTransactionsByCategoryPaginated(user.id, categoryId, limit, offset).map { entities ->
+                    entities.map { it.toDomain() }
+                }
             } else {
-                emptyList()
+                flowOf(emptyList())
             }
         }
     }

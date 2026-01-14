@@ -54,6 +54,7 @@ fun TransactionListScreen(
     val categories by viewModel.categories.collectAsState()
     val networkState by viewModel.networkState.collectAsState()
     val globalError by viewModel.globalError.collectAsState()
+    val netBalance by viewModel.netBalance.collectAsState()
     
     var showFilterDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -163,6 +164,7 @@ fun TransactionListScreen(
                         TransactionList(
                             transactions = state.data.transactions,
                             categoriesMap = state.data.categoriesMap,
+                            netBalance = netBalance,
                             onTransactionClick = onEditTransaction,
                             onDeleteTransaction = { viewModel.deleteTransaction(it) },
                             userFeedbackManager = userFeedbackManager,
@@ -202,6 +204,7 @@ fun TransactionListScreen(
 private fun TransactionList(
     transactions: List<Transaction>,
     categoriesMap: Map<String, Category>,
+    netBalance: Double,
     onTransactionClick: (String) -> Unit,
     onDeleteTransaction: (String) -> Unit,
     userFeedbackManager: UserFeedbackManager,
@@ -213,6 +216,11 @@ private fun TransactionList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Net Balance Card at the top
+        item {
+            NetBalanceCard(netBalance = netBalance)
+        }
+        
         items(
             items = transactions,
             key = { it.id }
@@ -246,6 +254,66 @@ private fun TransactionList(
                         Text("Load More")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NetBalanceCard(netBalance: Double) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (netBalance >= 0) {
+                Color(0xFF4CAF50).copy(alpha = 0.1f)
+            } else {
+                Color(0xFFF44336).copy(alpha = 0.1f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Net Balance",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = CurrencyUtils.formatAmount(netBalance),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (netBalance >= 0) {
+                    Color(0xFF4CAF50)
+                } else {
+                    Color(0xFFF44336)
+                },
+                modifier = Modifier.semantics {
+                    contentDescription = "Net balance: ${CurrencyUtils.formatAmount(netBalance)}"
+                }
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (netBalance >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                    contentDescription = null,
+                    tint = if (netBalance >= 0) Color(0xFF4CAF50) else Color(0xFFF44336),
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = if (netBalance >= 0) "Positive" else "Negative",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

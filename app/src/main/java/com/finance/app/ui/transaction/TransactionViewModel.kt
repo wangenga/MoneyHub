@@ -41,6 +41,9 @@ class TransactionViewModel @Inject constructor(
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+    
+    private val _netBalance = MutableStateFlow(0.0)
+    val netBalance: StateFlow<Double> = _netBalance.asStateFlow()
 
     private var currentPage = 0
     private var isLoadingMore = false
@@ -49,6 +52,7 @@ class TransactionViewModel @Inject constructor(
     init {
         loadCategories()
         loadTransactions()
+        loadNetBalance()
         startNetworkObservation()
     }
 
@@ -115,6 +119,17 @@ class TransactionViewModel @Inject constructor(
                 _uiState.value = createRetryableError(errorMessage) {
                     loadTransactions()
                 }
+            }
+        )
+    }
+    
+    private fun loadNetBalance() {
+        executeWithErrorHandling(
+            operation = {
+                transactionRepository.getAllTransactions()
+                    .collect { transactions ->
+                        calculateNetBalance(transactions)
+                    }
             }
         )
     }
@@ -232,6 +247,18 @@ class TransactionViewModel @Inject constructor(
 
     fun retry() {
         loadTransactions()
+    }
+    
+    private fun calculateNetBalance(transactions: List<Transaction>) {
+        val income = transactions
+            .filter { it.type == TransactionType.INCOME }
+            .sumOf { it.amount }
+        
+        val expense = transactions
+            .filter { it.type == TransactionType.EXPENSE }
+            .sumOf { it.amount }
+        
+        _netBalance.value = income - expense
     }
 }
 
