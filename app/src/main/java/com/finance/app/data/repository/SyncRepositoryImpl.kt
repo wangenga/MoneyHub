@@ -1,12 +1,16 @@
 package com.finance.app.data.repository
 
 import android.content.SharedPreferences
+import com.finance.app.data.local.dao.BudgetDao
 import com.finance.app.data.local.dao.CategoryDao
+import com.finance.app.data.local.dao.RecurringTransactionDao
 import com.finance.app.data.local.dao.TransactionDao
 import com.finance.app.data.mapper.toDomain
 import com.finance.app.data.mapper.toEntity
 import com.finance.app.data.remote.FirestoreDataSource
+import com.finance.app.domain.model.Budget
 import com.finance.app.domain.model.Category
+import com.finance.app.domain.model.RecurringTransaction
 import com.finance.app.domain.model.SyncStatus
 import com.finance.app.domain.model.Transaction
 import com.finance.app.domain.repository.AuthRepository
@@ -29,6 +33,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val firestoreDataSource: FirestoreDataSource,
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
+    private val budgetDao: BudgetDao,
+    private val recurringTransactionDao: RecurringTransactionDao,
     private val authRepository: AuthRepository,
     private val sharedPreferences: SharedPreferences,
     private val errorHandler: ErrorHandler
@@ -37,6 +43,8 @@ class SyncRepositoryImpl @Inject constructor(
     companion object {
         private const val LAST_SYNC_TIMESTAMP_KEY = "last_sync_timestamp"
         private const val MAX_RETRY_ATTEMPTS = 3
+        private const val LAST_BUDGET_SYNC_TIMESTAMP_KEY = "last_budget_sync_timestamp"
+        private const val LAST_RECURRING_TRANSACTION_SYNC_TIMESTAMP_KEY = "last_recurring_transaction_sync_timestamp"
     }
     
     private val _syncStatus = MutableStateFlow<SyncState>(SyncState.Idle)
@@ -123,7 +131,7 @@ class SyncRepositoryImpl @Inject constructor(
         authRepository.getCurrentUser().first()
             ?: return Result.failure(Exception("User not authenticated"))
         
-        // Sync transactions first, then categories
+        // Sync transactions first, then categories, budgets, and recurring transactions
         val transactionResult = performTransactionSync()
         if (transactionResult.isFailure) {
             return transactionResult
@@ -132,6 +140,16 @@ class SyncRepositoryImpl @Inject constructor(
         val categoryResult = performCategorySync()
         if (categoryResult.isFailure) {
             return categoryResult
+        }
+        
+        val budgetResult = performBudgetSync()
+        if (budgetResult.isFailure) {
+            return budgetResult
+        }
+        
+        val recurringTransactionResult = performRecurringTransactionSync()
+        if (recurringTransactionResult.isFailure) {
+            return recurringTransactionResult
         }
         
         return Result.success(Unit)
@@ -265,6 +283,158 @@ class SyncRepositoryImpl @Inject constructor(
                     // If local is newer or equal, keep local version (already uploaded)
                 }
             }
+            
+            return Result.success(Unit)
+            
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
+    
+    /**
+     * Performs budget synchronization with delta sync optimization and conflict resolution
+     */
+    private suspend fun performBudgetSync(): Result<Unit> {
+        val user = authRepository.getCurrentUser().first()
+            ?: return Result.failure(Exception("User not authenticated"))
+        
+        try {
+            val lastSyncTimestamp = sharedPreferences.getLong(LAST_BUDGET_SYNC_TIMESTAMP_KEY, -1L)
+                .let { if (it == -1L) null else it }
+            
+            // Step 1: Upload pending local budgets (delta sync - only changed items)
+            val localBudgets = budgetDao.getBudgetsForUser(user.id).first()
+                .map { it.toDomain() }
+            
+            val budgetsToSync = if (lastSyncTimestamp != null) {
+                // Delta sync: only sync budgets updated after last sync
+                localBudgets.filter { it.updatedAt > lastSyncTimestamp }
+            } else {
+                // Full sync: sync all budgets
+                localBudgets
+            }
+            
+            if (budgetsToSync.isNotEmpty()) {
+                val uploadResult = firestoreDataSource.saveBudgetsBatch(user.id, budgetsToSync)
+                if (uploadResult.isFailure) {
+                    return uploadResult
+                }
+            }
+            
+            // Step 2: Download remote changes (delta sync - only items updated after last sync)
+            val remoteBudgetsResult = if (lastSyncTimestamp != null) {
+                // Delta sync: only get budgets updated since last sync
+                firestoreDataSource.getBudgetsUpdatedAfter(user.id, lastSyncTimestamp)
+            } else {
+                // Full sync: first time sync, get all budgets
+                firestoreDataSource.getBudgets(user.id)
+            }
+            
+            if (remoteBudgetsResult.isFailure) {
+                return Result.failure(remoteBudgetsResult.exceptionOrNull() ?: Exception("Unknown sync error"))
+            }
+            
+            val remoteBudgets = remoteBudgetsResult.getOrNull() ?: emptyList()
+            
+            // Step 3: Resolve conflicts and merge data using timestamp-based conflict resolution
+            for (remoteBudget in remoteBudgets) {
+                val localBudget = budgetDao.getBudgetByIdFlow(remoteBudget.id).first()
+                
+                if (localBudget == null) {
+                    // New remote budget - insert locally
+                    budgetDao.insertBudget(remoteBudget.toEntity())
+                } else {
+                    // Conflict resolution using last-write-wins (timestamp comparison)
+                    val localDomain = localBudget.toDomain()
+                    if (remoteBudget.updatedAt > localDomain.updatedAt) {
+                        // Remote is newer - update local
+                        budgetDao.insertBudget(remoteBudget.toEntity())
+                    }
+                    // If local is newer or equal, keep local version (already uploaded)
+                }
+            }
+            
+            // Update last sync timestamp
+            val currentTime = System.currentTimeMillis()
+            sharedPreferences.edit()
+                .putLong(LAST_BUDGET_SYNC_TIMESTAMP_KEY, currentTime)
+                .apply()
+            
+            return Result.success(Unit)
+            
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
+    
+    /**
+     * Performs recurring transaction synchronization with delta sync optimization and conflict resolution
+     */
+    private suspend fun performRecurringTransactionSync(): Result<Unit> {
+        val user = authRepository.getCurrentUser().first()
+            ?: return Result.failure(Exception("User not authenticated"))
+        
+        try {
+            val lastSyncTimestamp = sharedPreferences.getLong(LAST_RECURRING_TRANSACTION_SYNC_TIMESTAMP_KEY, -1L)
+                .let { if (it == -1L) null else it }
+            
+            // Step 1: Upload pending local recurring transactions (delta sync - only changed items)
+            val localRecurringTransactions = recurringTransactionDao.getRecurringTransactionsForUser(user.id).first()
+                .map { it.toDomain() }
+            
+            val recurringTransactionsToSync = if (lastSyncTimestamp != null) {
+                // Delta sync: only sync recurring transactions updated after last sync
+                localRecurringTransactions.filter { it.updatedAt > lastSyncTimestamp }
+            } else {
+                // Full sync: sync all recurring transactions
+                localRecurringTransactions
+            }
+            
+            if (recurringTransactionsToSync.isNotEmpty()) {
+                val uploadResult = firestoreDataSource.saveRecurringTransactionsBatch(user.id, recurringTransactionsToSync)
+                if (uploadResult.isFailure) {
+                    return uploadResult
+                }
+            }
+            
+            // Step 2: Download remote changes (delta sync - only items updated after last sync)
+            val remoteRecurringTransactionsResult = if (lastSyncTimestamp != null) {
+                // Delta sync: only get recurring transactions updated since last sync
+                firestoreDataSource.getRecurringTransactionsUpdatedAfter(user.id, lastSyncTimestamp)
+            } else {
+                // Full sync: first time sync, get all recurring transactions
+                firestoreDataSource.getRecurringTransactions(user.id)
+            }
+            
+            if (remoteRecurringTransactionsResult.isFailure) {
+                return Result.failure(remoteRecurringTransactionsResult.exceptionOrNull() ?: Exception("Unknown sync error"))
+            }
+            
+            val remoteRecurringTransactions = remoteRecurringTransactionsResult.getOrNull() ?: emptyList()
+            
+            // Step 3: Resolve conflicts and merge data using timestamp-based conflict resolution
+            for (remoteRecurringTransaction in remoteRecurringTransactions) {
+                val localRecurringTransaction = recurringTransactionDao.getRecurringTransactionByIdFlow(remoteRecurringTransaction.id).first()
+                
+                if (localRecurringTransaction == null) {
+                    // New remote recurring transaction - insert locally
+                    recurringTransactionDao.insertRecurringTransaction(remoteRecurringTransaction.toEntity())
+                } else {
+                    // Conflict resolution using last-write-wins (timestamp comparison)
+                    val localDomain = localRecurringTransaction.toDomain()
+                    if (remoteRecurringTransaction.updatedAt > localDomain.updatedAt) {
+                        // Remote is newer - update local
+                        recurringTransactionDao.insertRecurringTransaction(remoteRecurringTransaction.toEntity())
+                    }
+                    // If local is newer or equal, keep local version (already uploaded)
+                }
+            }
+            
+            // Update last sync timestamp
+            val currentTime = System.currentTimeMillis()
+            sharedPreferences.edit()
+                .putLong(LAST_RECURRING_TRANSACTION_SYNC_TIMESTAMP_KEY, currentTime)
+                .apply()
             
             return Result.success(Unit)
             

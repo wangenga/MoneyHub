@@ -43,6 +43,14 @@ interface RecurringTransactionDao {
     suspend fun getRecurringTransactionById(recurringTransactionId: String): RecurringTransactionEntity?
     
     /**
+     * Get recurring transaction by ID as Flow
+     * @param recurringTransactionId The recurring transaction ID
+     * @return Flow of recurring transaction entity or null if not found
+     */
+    @Query("SELECT * FROM recurring_transactions WHERE id = :recurringTransactionId")
+    fun getRecurringTransactionByIdFlow(recurringTransactionId: String): Flow<RecurringTransactionEntity?>
+    
+    /**
      * Insert a new recurring transaction
      * @param recurringTransaction The recurring transaction entity to insert
      */
@@ -86,4 +94,11 @@ interface RecurringTransactionDao {
      */
     @Query("UPDATE recurring_transactions SET nextDueDate = :nextDueDate, updatedAt = :updatedAt WHERE id = :recurringTransactionId")
     suspend fun updateNextDueDate(recurringTransactionId: String, nextDueDate: Long, updatedAt: Long)
+    
+    /**
+     * Get all recurring transactions in the database
+     * @return List of all recurring transaction entities
+     */
+    @Query("SELECT * FROM recurring_transactions")
+    suspend fun getAllRecurringTransactions(): List<RecurringTransactionEntity>
 }

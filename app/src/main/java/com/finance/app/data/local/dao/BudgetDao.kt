@@ -46,6 +46,14 @@ interface BudgetDao {
     suspend fun getBudgetById(budgetId: String): BudgetEntity?
     
     /**
+     * Get budget by ID as Flow
+     * @param budgetId The budget ID
+     * @return Flow of budget entity or null if not found
+     */
+    @Query("SELECT * FROM budgets WHERE id = :budgetId")
+    fun getBudgetByIdFlow(budgetId: String): Flow<BudgetEntity?>
+    
+    /**
      * Insert a new budget
      * @param budget The budget entity to insert
      */
@@ -89,4 +97,11 @@ interface BudgetDao {
      */
     @Query("SELECT COUNT(*) > 0 FROM budgets WHERE userId = :userId AND categoryId = :categoryId")
     suspend fun budgetExistsForCategory(userId: String, categoryId: String): Boolean
+    
+    /**
+     * Get all budgets in the database
+     * @return List of all budget entities
+     */
+    @Query("SELECT * FROM budgets")
+    suspend fun getAllBudgets(): List<BudgetEntity>
 }

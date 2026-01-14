@@ -13,11 +13,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.navigation.NavArgument
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
@@ -231,8 +234,13 @@ fun MainNavigation(
                 )
             }
 
-            composable(NavigationRoutes.ADD_EDIT_BUDGET) {
+            composable(
+                route = "${NavigationRoutes.ADD_EDIT_BUDGET}/{categoryId}",
+                arguments = listOf(navArgument("categoryId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val categoryId = backStackEntry.arguments?.getString("categoryId") ?: return@composable
                 AddEditBudgetScreen(
+                    categoryId = categoryId,
                     onNavigateBack = {
                         navController.popBackStack()
                     }
