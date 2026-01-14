@@ -32,6 +32,8 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit = {},
+    onNavigateToBudgetManagement: () -> Unit = {},
+    onNavigateToRecurringTransactions: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -88,6 +90,27 @@ fun SettingsScreen(
                         subtitle = "Use colors from your wallpaper",
                         checked = uiState.isDynamicColorEnabled,
                         onCheckedChange = viewModel::setDynamicColorEnabled
+                    )
+                }
+            }
+            
+            // Financial Management Section
+            item {
+                SettingsSection(title = "Financial Management") {
+                    // Budget Management
+                    SettingsItem(
+                        icon = Icons.Default.AccountBalanceWallet,
+                        title = "Budget Management",
+                        subtitle = "Set and manage category budgets",
+                        onClick = onNavigateToBudgetManagement
+                    )
+                    
+                    // Recurring Transactions
+                    SettingsItem(
+                        icon = Icons.Default.Repeat,
+                        title = "Recurring Transactions",
+                        subtitle = "Manage automated transactions",
+                        onClick = onNavigateToRecurringTransactions
                     )
                 }
             }

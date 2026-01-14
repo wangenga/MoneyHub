@@ -22,10 +22,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.finance.app.ui.analytics.AnalyticsScreen
+import com.finance.app.ui.budget.AddEditBudgetScreen
+import com.finance.app.ui.budget.BudgetManagementScreen
 import com.finance.app.ui.category.AddEditCategoryScreen
 import com.finance.app.ui.category.CategoryManagementScreen
 import com.finance.app.ui.settings.SettingsScreen
+import com.finance.app.ui.transaction.AddEditRecurringTransactionScreen
 import com.finance.app.ui.transaction.AddEditTransactionScreen
+import com.finance.app.ui.transaction.RecurringTransactionScreen
 import com.finance.app.ui.transaction.TransactionListScreen
 
 /**
@@ -107,6 +111,9 @@ fun MainNavigation(
                     },
                     onEditTransaction = { transactionId ->
                         navController.navigate(NavigationRoutes.editTransaction(transactionId))
+                    },
+                    onNavigateToRecurringTransactions = {
+                        navController.navigate(NavigationRoutes.RECURRING_TRANSACTION_MANAGEMENT)
                     }
                 )
             }
@@ -119,7 +126,13 @@ fun MainNavigation(
 
             composable(NavigationRoutes.SETTINGS) {
                 SettingsScreen(
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onNavigateToBudgetManagement = {
+                        navController.navigate(NavigationRoutes.BUDGET_MANAGEMENT)
+                    },
+                    onNavigateToRecurringTransactions = {
+                        navController.navigate(NavigationRoutes.RECURRING_TRANSACTION_MANAGEMENT)
+                    }
                 )
             }
 
@@ -200,6 +213,57 @@ fun MainNavigation(
 
             composable(NavigationRoutes.EDIT_CATEGORY) {
                 AddEditCategoryScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // Budget screens
+            composable(NavigationRoutes.BUDGET_MANAGEMENT) {
+                BudgetManagementScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onEditBudget = { categoryId ->
+                        navController.navigate(NavigationRoutes.addEditBudget(categoryId))
+                    }
+                )
+            }
+
+            composable(NavigationRoutes.ADD_EDIT_BUDGET) {
+                AddEditBudgetScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // Recurring transaction screens
+            composable(NavigationRoutes.RECURRING_TRANSACTION_MANAGEMENT) {
+                RecurringTransactionScreen(
+                    onAddRecurringTransaction = {
+                        navController.navigate(NavigationRoutes.ADD_RECURRING_TRANSACTION)
+                    },
+                    onEditRecurringTransaction = { recurringTransactionId ->
+                        navController.navigate(NavigationRoutes.editRecurringTransaction(recurringTransactionId))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(NavigationRoutes.ADD_RECURRING_TRANSACTION) {
+                AddEditRecurringTransactionScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(NavigationRoutes.EDIT_RECURRING_TRANSACTION) {
+                AddEditRecurringTransactionScreen(
                     onNavigateBack = {
                         navController.popBackStack()
                     }

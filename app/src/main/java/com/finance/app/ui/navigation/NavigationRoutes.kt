@@ -30,6 +30,13 @@ object NavigationRoutes {
     const val ADD_CATEGORY_FROM_TRANSACTION = "add_category_from_transaction"
     const val EDIT_CATEGORY = "edit_category/{categoryId}"
     
+    // Budget routes
+    const val BUDGET_MANAGEMENT = "budget_management"
+    const val ADD_EDIT_BUDGET = "add_edit_budget/{categoryId}"
+    
+    // Recurring transaction routes (additional to existing)
+    const val RECURRING_TRANSACTION_MANAGEMENT = "recurring_transaction_management"
+    
     // Navigation result keys
     const val NEW_CATEGORY_ID_KEY = "new_category_id"
     
@@ -49,4 +56,5 @@ object NavigationRoutes {
     fun editTransaction(transactionId: String) = "edit_transaction/$transactionId"
     fun editCategory(categoryId: String) = "edit_category/$categoryId"
     fun editRecurringTransaction(recurringTransactionId: String) = "edit_recurring_transaction/$recurringTransactionId"
+    fun addEditBudget(categoryId: String) = "add_edit_budget/$categoryId"
 }

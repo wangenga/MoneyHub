@@ -46,6 +46,7 @@ import java.util.*
 fun TransactionListScreen(
     onAddTransaction: () -> Unit,
     onEditTransaction: (String) -> Unit,
+    onNavigateToRecurringTransactions: () -> Unit = {},
     viewModel: TransactionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -104,6 +105,18 @@ fun TransactionListScreen(
                                     contentDescription = null // IconButton already has content description
                                 )
                             }
+                        }
+                        
+                        IconButton(
+                            onClick = onNavigateToRecurringTransactions,
+                            modifier = Modifier.semantics {
+                                contentDescription = "View recurring transactions"
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Repeat,
+                                contentDescription = null // IconButton already has content description
+                            )
                         }
                     }
                 )
