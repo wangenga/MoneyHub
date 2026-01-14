@@ -254,13 +254,18 @@ fun AddEditTransactionScreen(
 
     // Category Selector Dialog
     if (showCategorySelector) {
+        val transactionType = when (uiState.type) {
+            TransactionType.EXPENSE -> CategoryType.EXPENSE
+            TransactionType.INCOME -> CategoryType.INCOME
+        }
+        
+        // Filter categories by transaction type
+        val filteredCategories = categories.filter { it.categoryType == transactionType }
+        
         CategorySelectorDialog(
-            categories = categories,
+            categories = filteredCategories,
             selectedCategoryId = uiState.categoryId,
-            transactionType = when (uiState.type) {
-                TransactionType.EXPENSE -> CategoryType.EXPENSE
-                TransactionType.INCOME -> CategoryType.INCOME
-            },
+            transactionType = transactionType,
             onCategorySelected = { categoryId ->
                 viewModel.updateCategory(categoryId)
                 showCategorySelector = false
