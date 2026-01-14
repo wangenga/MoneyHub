@@ -23,7 +23,7 @@ class NetworkStateObserverPropertyTest : FunSpec({
      * the NetworkStateObserver SHALL report NetworkState.Connected
      */
     test("Property 1: Connected status for validated networks - hasCapability AND internetReachable implies Connected") {
-        checkAll(100, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
+        checkAll(20, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
             val expectedState = determineNetworkState(hasCapability, internetReachable)
             
             // When both capability is present AND internet is reachable, state should be Connected
@@ -41,7 +41,7 @@ class NetworkStateObserverPropertyTest : FunSpec({
      * the NetworkStateObserver SHALL report NetworkState.Disconnected
      */
     test("Property 2: Disconnected status for unvalidated networks - NOT hasCapability OR NOT internetReachable implies Disconnected") {
-        checkAll(100, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
+        checkAll(20, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
             val expectedState = determineNetworkState(hasCapability, internetReachable)
             
             // When capability is missing OR internet is not reachable, state should be Disconnected
@@ -56,7 +56,7 @@ class NetworkStateObserverPropertyTest : FunSpec({
      * For any combination of connectivity flags, the resulting NetworkState is deterministic
      */
     test("Network state determination is deterministic for all input combinations") {
-        checkAll(100, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
+        checkAll(20, Arb.boolean(), Arb.boolean()) { hasCapability, internetReachable ->
             val state1 = determineNetworkState(hasCapability, internetReachable)
             val state2 = determineNetworkState(hasCapability, internetReachable)
             

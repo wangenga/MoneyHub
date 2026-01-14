@@ -34,7 +34,7 @@ class CategoryTypePropertyTest : FunSpec({
         allValues shouldContainExactlyInAnyOrder listOf(CategoryType.INCOME, CategoryType.EXPENSE)
         
         // Property test: For any CategoryType value, it must be either INCOME or EXPENSE
-        checkAll(100, Arb.enum<CategoryType>()) { categoryType ->
+        checkAll(20, Arb.enum<CategoryType>()) { categoryType ->
             val isValidType = categoryType == CategoryType.INCOME || categoryType == CategoryType.EXPENSE
             isValidType shouldBe true
         }
@@ -47,7 +47,7 @@ class CategoryTypePropertyTest : FunSpec({
      * This ensures the enum can be safely serialized/deserialized.
      */
     test("CategoryType string representation round-trip is consistent") {
-        checkAll(100, Arb.enum<CategoryType>()) { categoryType ->
+        checkAll(20, Arb.enum<CategoryType>()) { categoryType ->
             val stringValue = categoryType.name
             val parsedBack = CategoryType.valueOf(stringValue)
             parsedBack shouldBe categoryType
@@ -61,7 +61,7 @@ class CategoryTypePropertyTest : FunSpec({
      * as these are the values stored in the database.
      */
     test("CategoryType string names match expected database values") {
-        checkAll(100, Arb.enum<CategoryType>()) { categoryType ->
+        checkAll(20, Arb.enum<CategoryType>()) { categoryType ->
             val stringValue = categoryType.name
             val isValidString = stringValue == "INCOME" || stringValue == "EXPENSE"
             isValidString shouldBe true

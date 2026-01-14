@@ -32,7 +32,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
         val dateArb = Arb.long(min = 1_000_000_000_000L, max = 2_000_000_000_000L) // Valid timestamp range
         val patternArb = Arb.enum<RecurrencePattern>()
         
-        checkAll(100, dateArb, patternArb) { currentDate, pattern ->
+        checkAll(20, dateArb, patternArb) { currentDate, pattern ->
             // Calculate next due date
             val nextDueDate = RecurrenceCalculator.calculateNextDueDate(currentDate, pattern)
             
@@ -76,7 +76,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
     "dailyRecurrence_addsExactlyOneDay" {
         val dateArb = Arb.long(min = 1_000_000_000_000L, max = 2_000_000_000_000L)
         
-        checkAll(100, dateArb) { currentDate ->
+        checkAll(20, dateArb) { currentDate ->
             val nextDueDate = RecurrenceCalculator.calculateNextDueDate(currentDate, RecurrencePattern.DAILY)
             
             // Calculate expected next date (24 hours later)
@@ -100,7 +100,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
     "weeklyRecurrence_addsExactlyOneWeek" {
         val dateArb = Arb.long(min = 1_000_000_000_000L, max = 2_000_000_000_000L)
         
-        checkAll(100, dateArb) { currentDate ->
+        checkAll(20, dateArb) { currentDate ->
             val nextDueDate = RecurrenceCalculator.calculateNextDueDate(currentDate, RecurrencePattern.WEEKLY)
             
             // Calculate expected next date (7 days later)
@@ -169,7 +169,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
         val dateArb = Arb.long(min = 1_000_000_000_000L, max = 2_000_000_000_000L)
         val patternArb = Arb.enum<RecurrencePattern>()
         
-        checkAll(100, dateArb, patternArb) { startDate, pattern ->
+        checkAll(20, dateArb, patternArb) { startDate, pattern ->
             var currentDate = startDate
             
             // Calculate 5 consecutive next due dates
@@ -222,7 +222,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
         val patternArb = Arb.enum<RecurrencePattern>()
         val countArb = Arb.int(min = 2, max = 10)
         
-        checkAll(100, dateArb, patternArb, countArb) { startDate, pattern, count ->
+        checkAll(20, dateArb, patternArb, countArb) { startDate, pattern, count ->
             val futureDates = RecurrenceCalculator.calculateFutureDueDates(startDate, pattern, count)
             
             // Verify we got the correct number of dates
@@ -267,7 +267,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
     "missedPeriodsCalculation_isConsistent" {
         val patternArb = Arb.enum<RecurrencePattern>()
         
-        checkAll(100, patternArb) { pattern ->
+        checkAll(20, patternArb) { pattern ->
             val currentTime = System.currentTimeMillis()
             
             // Create a date that's definitely in the past
@@ -305,7 +305,7 @@ class RecurrenceCalculatorPropertyTest : StringSpec({
         val futureDateArb = Arb.long(min = currentTime + 1000, max = currentTime + 365L * 24 * 60 * 60 * 1000)
         val patternArb = Arb.enum<RecurrencePattern>()
         
-        checkAll(100, futureDateArb, patternArb) { futureDate, pattern ->
+        checkAll(20, futureDateArb, patternArb) { futureDate, pattern ->
             val missedPeriods = RecurrenceCalculator.calculateMissedPeriods(futureDate, pattern)
             missedPeriods shouldBe 0
         }

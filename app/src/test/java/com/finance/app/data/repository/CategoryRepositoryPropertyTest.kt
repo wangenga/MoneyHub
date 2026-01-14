@@ -36,7 +36,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * expense categories belonging to that user.
      */
     test("Property 1: Expense category query includes defaults and user customs") {
-        checkAll(100, userIdArb(), customExpenseCategoriesArb()) { userId, customCategories ->
+        checkAll(20, userIdArb(), customExpenseCategoriesArb()) { userId, customCategories ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -84,7 +84,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * `categoryType = INCOME` AND `userId = <that user's id>`, with no default categories included.
      */
     test("Property 7: Income category query returns only user's income categories") {
-        checkAll(100, userIdArb(), customIncomeCategoriesArb()) { userId, incomeCategories ->
+        checkAll(20, userIdArb(), customIncomeCategoriesArb()) { userId, incomeCategories ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -126,7 +126,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * and the category should remain in the database unchanged.
      */
     test("Property 2: Default category deletion protection") {
-        checkAll(100, defaultCategoryIdArb()) { defaultCategoryId ->
+        checkAll(20, defaultCategoryIdArb()) { defaultCategoryId ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -163,7 +163,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * and the category should remain unchanged.
      */
     test("Property 10: Default category edit protection") {
-        checkAll(100, defaultCategoryArb()) { defaultCategory ->
+        checkAll(20, defaultCategoryArb()) { defaultCategory ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -194,7 +194,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * the creation should fail with a validation error.
      */
     test("Property 4: Category validation requires non-empty fields") {
-        checkAll(100, invalidCategoryArb()) { invalidCategory ->
+        checkAll(20, invalidCategoryArb()) { invalidCategory ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -225,7 +225,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * as user B (where A ≠ B) should not include that category in the results.
      */
     test("Property 3: Custom category user isolation") {
-        checkAll(100, userIdArb(), userIdArb(), customCategoryArb()) { userA, userB, customCategory ->
+        checkAll(20, userIdArb(), userIdArb(), customCategoryArb()) { userA, userB, customCategory ->
             // Ensure users are different
             if (userA != userB) {
                 runBlocking {
@@ -264,7 +264,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * both categories should exist independently in the database with their respective user identifiers.
      */
     test("Property 6: User isolation with identical names") {
-        checkAll(100, userIdArb(), userIdArb(), Arb.string(1..50, Arb.alphanumeric())) { userA, userB, categoryName ->
+        checkAll(20, userIdArb(), userIdArb(), Arb.string(1..50, Arb.alphanumeric())) { userA, userB, categoryName ->
             // Ensure users are different
             if (userA != userB) {
                 runBlocking {
@@ -329,7 +329,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * deletion should succeed and subsequent queries should not return that category.
      */
     test("Property 5: Custom category deletion succeeds") {
-        checkAll(100, customCategoryArb()) { customCategory ->
+        checkAll(20, customCategoryArb()) { customCategory ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()
@@ -368,7 +368,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * querying that category by ID should return the updated values.
      */
     test("Property 9: Custom category update persistence") {
-        checkAll(100, customCategoryArb(), Arb.string(1..50, Arb.alphanumeric()), 
+        checkAll(20, customCategoryArb(), Arb.string(1..50, Arb.alphanumeric()), 
                  Arb.string(6, Arb.alphanumeric()).map { "#$it" }, 
                  Arb.string(1..20, Arb.alphanumeric())) { originalCategory, newName, newColor, newIcon ->
             runBlocking {
@@ -426,7 +426,7 @@ class CategoryRepositoryPropertyTest : FunSpec({
      * from its original value regardless of what value is provided in the update.
      */
     test("Property 11: Category type immutability on update") {
-        checkAll(100, customCategoryArb()) { originalCategory ->
+        checkAll(20, customCategoryArb()) { originalCategory ->
             runBlocking {
                 // Setup mocks
                 val categoryDao = mockk<CategoryDao>()

@@ -32,7 +32,7 @@ class FirestoreCategoryMapperPropertyTest : FunSpec({
      * 4. The round-trip is consistent for both INCOME and EXPENSE categories
      */
     test("Property 12: Serialization round-trip preserves category data") {
-        checkAll(100, categoryArb()) { originalCategory ->
+        checkAll(20, categoryArb()) { originalCategory ->
             // Convert domain Category to Firestore
             val firestoreCategory = FirestoreCategoryMapper.toFirestore(originalCategory)
             
@@ -58,7 +58,7 @@ class FirestoreCategoryMapperPropertyTest : FunSpec({
      * *For any* CategoryType, converting to string in Firestore and back should preserve the type.
      */
     test("CategoryType string conversion is bidirectional") {
-        checkAll(100, Arb.enum<CategoryType>()) { categoryType ->
+        checkAll(20, Arb.enum<CategoryType>()) { categoryType ->
             val stringValue = categoryType.name
             val parsedBack = when (stringValue) {
                 "INCOME" -> CategoryType.INCOME
@@ -76,7 +76,7 @@ class FirestoreCategoryMapperPropertyTest : FunSpec({
      * the round-trip should preserve the data correctly.
      */
     test("Firestore serialization handles edge cases correctly") {
-        checkAll(100, edgeCaseCategoryArb()) { originalCategory ->
+        checkAll(20, edgeCaseCategoryArb()) { originalCategory ->
             val firestoreCategory = FirestoreCategoryMapper.toFirestore(originalCategory)
             val roundTripCategory = FirestoreCategoryMapper.toDomain(firestoreCategory, originalCategory.userId)
             

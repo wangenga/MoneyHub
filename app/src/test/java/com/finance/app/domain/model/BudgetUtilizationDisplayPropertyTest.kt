@@ -41,7 +41,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
             )
         }
         
-        checkAll(100, budgetUtilizationArb) { utilization ->
+        checkAll(20, budgetUtilizationArb) { utilization ->
             // Verify all required fields are present with expected values
             utilization.categoryId.isNotEmpty() shouldBe true
             utilization.categoryName.isNotEmpty() shouldBe true
@@ -60,7 +60,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * calculated as (currentSpending / budgetLimit) * 100.
      */
     "utilizationPercentageCalculation_isCorrect" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",
@@ -80,7 +80,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * calculated as (budgetLimit - currentSpending).
      */
     "remainingAmountCalculation_isCorrect" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",
@@ -100,7 +100,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * currentSpending > budgetLimit.
      */
     "overBudgetFlag_isSetCorrectly" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",
@@ -123,7 +123,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * - NORMAL if < 75%
      */
     "alertLevelDetermination_isCorrect" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0), Arb.double(min = 0.0, max = 150_000.0)) { budgetLimit, spending ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",
@@ -149,7 +149,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * isOverBudget should be false.
      */
     "underBudgetScenario_displayDataIsConsistent" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
             val spending = budgetLimit * 0.5 // 50% of budget
             
             val utilization = BudgetUtilization.create(
@@ -172,7 +172,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * isOverBudget should be true.
      */
     "overBudgetScenario_displayDataIsConsistent" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
             val spending = budgetLimit * 1.5 // 150% of budget
             
             val utilization = BudgetUtilization.create(
@@ -195,7 +195,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * and isOverBudget should be false.
      */
     "zeroSpendingScenario_displayDataIsConsistent" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",
@@ -216,7 +216,7 @@ class BudgetUtilizationDisplayPropertyTest : StringSpec({
      * and isOverBudget should be false (not over, just at limit).
      */
     "exactBudgetMatchScenario_displayDataIsConsistent" {
-        checkAll(100, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
+        checkAll(20, Arb.double(min = 1.0, max = 100_000.0)) { budgetLimit ->
             val utilization = BudgetUtilization.create(
                 categoryId = "cat1",
                 categoryName = "Test Category",

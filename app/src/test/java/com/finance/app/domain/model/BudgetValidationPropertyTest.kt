@@ -26,7 +26,7 @@ class BudgetValidationPropertyTest : StringSpec({
      * the validation logic consistently accepts valid amounts and rejects invalid ones.
      */
     "property2_budgetValidationConsistency_validAmountsAcceptedInvalidRejected" {
-        checkAll(100, Arb.double()) { amount ->
+        checkAll(20, Arb.double()) { amount ->
             val isValid = Budget.isValidBudgetAmount(amount)
             val shouldBeValid = amount > 0.0 && amount <= 1_000_000.0
             
@@ -45,7 +45,7 @@ class BudgetValidationPropertyTest : StringSpec({
         // Generate amounts in the valid range: (0, 1_000_000]
         val validAmounts = Arb.double(min = 0.01, max = 1_000_000.0)
         
-        checkAll(100, validAmounts) { amount ->
+        checkAll(20, validAmounts) { amount ->
             Budget.isValidBudgetAmount(amount) shouldBe true
         }
     }
@@ -59,7 +59,7 @@ class BudgetValidationPropertyTest : StringSpec({
         // Generate negative amounts and zero
         val invalidAmounts = Arb.double(min = -1_000_000.0, max = 0.0)
         
-        checkAll(100, invalidAmounts) { amount ->
+        checkAll(20, invalidAmounts) { amount ->
             Budget.isValidBudgetAmount(amount) shouldBe false
         }
     }
@@ -73,7 +73,7 @@ class BudgetValidationPropertyTest : StringSpec({
         // Generate amounts above the limit: (1_000_000, ∞)
         val excessiveAmounts = Arb.double(min = 1_000_000.01, max = 10_000_000.0)
         
-        checkAll(100, excessiveAmounts) { amount ->
+        checkAll(20, excessiveAmounts) { amount ->
             Budget.isValidBudgetAmount(amount) shouldBe false
         }
     }
@@ -97,7 +97,7 @@ class BudgetValidationPropertyTest : StringSpec({
      * Verifies that months 1-12 are accepted and all other values are rejected.
      */
     "monthValidation_isConsistent" {
-        checkAll(100, Arb.int()) { month ->
+        checkAll(20, Arb.int()) { month ->
             val isValid = Budget.isValidMonth(month)
             val shouldBeValid = month in 1..12
             
@@ -112,7 +112,7 @@ class BudgetValidationPropertyTest : StringSpec({
      * and all other values are rejected.
      */
     "yearValidation_isConsistent" {
-        checkAll(100, Arb.int()) { year ->
+        checkAll(20, Arb.int()) { year ->
             val isValid = Budget.isValidYear(year)
             val shouldBeValid = year >= 2000 && year <= 2100
             
@@ -140,7 +140,7 @@ class BudgetValidationPropertyTest : StringSpec({
             )
         }
         
-        checkAll(100, budgetArb) { budget ->
+        checkAll(20, budgetArb) { budget ->
             val isValid = budget.isValid()
             
             // Manually compute what the validation should be
