@@ -1,5 +1,7 @@
 package com.finance.app.domain.model
 
+import com.finance.app.util.RecurrenceCalculator
+
 /**
  * Enum representing the frequency patterns for recurring transactions
  */
@@ -29,22 +31,6 @@ enum class RecurrencePattern {
      * @return The next due date in milliseconds
      */
     fun calculateNextDueDate(currentDate: Long): Long {
-        val calendar = java.util.Calendar.getInstance()
-        calendar.timeInMillis = currentDate
-        
-        return when (this) {
-            DAILY -> {
-                calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
-                calendar.timeInMillis
-            }
-            WEEKLY -> {
-                calendar.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-                calendar.timeInMillis
-            }
-            MONTHLY -> {
-                calendar.add(java.util.Calendar.MONTH, 1)
-                calendar.timeInMillis
-            }
-        }
+        return RecurrenceCalculator.calculateNextDueDate(currentDate, this)
     }
 }

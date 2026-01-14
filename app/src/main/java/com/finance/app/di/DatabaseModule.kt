@@ -2,7 +2,9 @@ package com.finance.app.di
 
 import android.content.Context
 import com.finance.app.data.local.FinanceDatabase
+import com.finance.app.data.local.dao.BudgetDao
 import com.finance.app.data.local.dao.CategoryDao
+import com.finance.app.data.local.dao.RecurringTransactionDao
 import com.finance.app.data.local.dao.TransactionDao
 import com.finance.app.data.local.dao.UserDao
 import com.finance.app.data.local.encryption.DatabaseKeyManager
@@ -43,5 +45,15 @@ object DatabaseModule {
     @Provides
     fun provideCategoryDao(database: FinanceDatabase): CategoryDao {
         return database.categoryDao()
+    }
+    
+    @Provides
+    fun provideBudgetDao(database: FinanceDatabase): BudgetDao {
+        return database.budgetDao()
+    }
+    
+    @Provides
+    fun provideRecurringTransactionDao(database: FinanceDatabase): RecurringTransactionDao {
+        return database.recurringTransactionDao()
     }
 }

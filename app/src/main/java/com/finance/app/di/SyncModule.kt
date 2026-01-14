@@ -1,7 +1,9 @@
 package com.finance.app.di
 
+import com.finance.app.data.sync.RecurringTransactionSchedulerImpl
 import com.finance.app.data.sync.SyncSchedulerImpl
 import com.finance.app.domain.sync.SyncScheduler
+import com.finance.app.domain.usecase.RecurringTransactionScheduler
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -20,4 +22,10 @@ abstract class SyncModule {
     abstract fun bindSyncScheduler(
         syncSchedulerImpl: SyncSchedulerImpl
     ): SyncScheduler
+    
+    @Binds
+    @Singleton
+    abstract fun bindRecurringTransactionScheduler(
+        recurringTransactionSchedulerImpl: RecurringTransactionSchedulerImpl
+    ): RecurringTransactionScheduler
 }

@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.finance.app.domain.repository.CategoryRepository
 import com.finance.app.domain.sync.SyncScheduler
+import com.finance.app.domain.usecase.RecurringTransactionScheduler
 import com.finance.app.util.ActivityProvider
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,6 +25,9 @@ class FinanceApplication : Application(), Configuration.Provider {
     
     @Inject
     lateinit var syncScheduler: SyncScheduler
+    
+    @Inject
+    lateinit var recurringTransactionScheduler: RecurringTransactionScheduler
     
     @Inject
     lateinit var activityProvider: ActivityProvider
@@ -74,6 +78,17 @@ class FinanceApplication : Application(), Configuration.Provider {
             Log.d("FinanceApp", "Sync scheduler initialized")
         } catch (e: Exception) {
             Log.e("FinanceApp", "Sync scheduler initialization failed", e)
+        }
+        
+        // Initialize recurring transaction scheduler on app startup
+        // This ensures recurring transactions are monitored and executed
+        applicationScope.launch {
+            try {
+                recurringTransactionScheduler.startScheduling()
+                Log.d("FinanceApp", "Recurring transaction scheduler initialized")
+            } catch (e: Exception) {
+                Log.e("FinanceApp", "Recurring transaction scheduler initialization failed", e)
+            }
         }
     }
     
