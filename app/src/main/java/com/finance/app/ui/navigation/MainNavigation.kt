@@ -235,7 +235,7 @@ fun MainNavigation(
             }
 
             composable(
-                route = "${NavigationRoutes.ADD_EDIT_BUDGET}/{categoryId}",
+                route = NavigationRoutes.ADD_EDIT_BUDGET,
                 arguments = listOf(navArgument("categoryId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val categoryId = backStackEntry.arguments?.getString("categoryId") ?: return@composable
