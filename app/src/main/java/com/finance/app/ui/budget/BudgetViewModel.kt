@@ -118,7 +118,8 @@ class BudgetViewModel @Inject constructor(
         
         executeWithErrorHandling(
             operation = {
-                categoryRepository.getAllCategories(userId)
+                // Only load expense categories for budget management
+                categoryRepository.getExpenseCategories(userId)
                     .collect { categoryList ->
                         _categories.value = UiState.Success(categoryList)
                     }
