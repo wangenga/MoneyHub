@@ -299,9 +299,9 @@ private fun BudgetCategoryItem(
                             .size(48.dp)
                             .semantics {
                                 contentDescription = if (budget != null) {
-                                    "Edit budget for ${category.name}"
+                                    "Edit category ${category.name}"
                                 } else {
-                                    "Add budget for ${category.name}"
+                                    "Add category ${category.name}"
                                 }
                             }
                     ) {
