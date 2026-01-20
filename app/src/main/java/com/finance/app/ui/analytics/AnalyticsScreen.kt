@@ -384,8 +384,9 @@ private fun SpendingByCategoryChart(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (spendingByCategory.isNotEmpty()) {
-                // Create chart entries
-                val entries = spendingByCategory.entries.mapIndexed { index, (category, amount) ->
+                // Create chart entries with proper X-axis (category index) and Y-axis (amount)
+                val sortedCategories = spendingByCategory.entries.sortedByDescending { it.value }
+                val entries = sortedCategories.mapIndexed { index, (category, amount) ->
                     FloatEntry(index.toFloat(), amount.toFloat())
                 }
 
@@ -393,8 +394,18 @@ private fun SpendingByCategoryChart(
                     Chart(
                         chart = columnChart(),
                         model = ChartEntryModelProducer(entries).requireModel(),
-                        startAxis = rememberStartAxis(),
-                        bottomAxis = rememberBottomAxis(),
+                        startAxis = rememberStartAxis(
+                            title = "Amount (${CurrencyUtils.getCurrencySymbol()})"
+                        ),
+                        bottomAxis = rememberBottomAxis(
+                            title = "Categories",
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index >= 0 && index < sortedCategories.size) {
+                                    sortedCategories[index].key.name
+                                } else ""
+                            }
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
@@ -517,17 +528,29 @@ private fun IncomeVsExpenseChart(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            val incomeEntries = listOf(FloatEntry(0f, incomeExpenseData.totalIncome.toFloat()))
-            val expenseEntries = listOf(FloatEntry(1f, incomeExpenseData.totalExpense.toFloat()))
-
-            val allEntries = incomeEntries + expenseEntries
+            // Create proper entries: X-axis = category (0=Income, 1=Expense), Y-axis = amount
+            val entries = listOf(
+                FloatEntry(0f, incomeExpenseData.totalIncome.toFloat()), // Income
+                FloatEntry(1f, incomeExpenseData.totalExpense.toFloat()) // Expense
+            )
             
             ProvideChartStyle {
                 Chart(
                     chart = columnChart(),
-                    model = ChartEntryModelProducer(allEntries).requireModel(),
-                    startAxis = rememberStartAxis(),
-                    bottomAxis = rememberBottomAxis(),
+                    model = ChartEntryModelProducer(entries).requireModel(),
+                    startAxis = rememberStartAxis(
+                        title = "Amount (${CurrencyUtils.getCurrencySymbol()})"
+                    ),
+                    bottomAxis = rememberBottomAxis(
+                        title = "Type",
+                        valueFormatter = { value, _ ->
+                            when (value.toInt()) {
+                                0 -> "Income"
+                                1 -> "Expenses"
+                                else -> ""
+                            }
+                        }
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
@@ -641,6 +664,7 @@ private fun SpendingTrendChart(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (spendingTrend.isNotEmpty()) {
+                // Create proper entries: X-axis = time points, Y-axis = spending amount
                 val entries = spendingTrend.mapIndexed { index, trendPoint ->
                     FloatEntry(index.toFloat(), trendPoint.amount.toFloat())
                 }
@@ -649,8 +673,13 @@ private fun SpendingTrendChart(
                     Chart(
                         chart = lineChart(),
                         model = ChartEntryModelProducer(entries).requireModel(),
-                        startAxis = rememberStartAxis(),
-                        bottomAxis = rememberBottomAxis(),
+                        startAxis = rememberStartAxis(
+                            title = "Spending (${CurrencyUtils.getCurrencySymbol()})"
+                        ),
+                        bottomAxis = rememberBottomAxis(
+                            title = "Jan",
+                            valueFormatter = { _, _ -> "" } // Hide individual labels since it's all January
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)

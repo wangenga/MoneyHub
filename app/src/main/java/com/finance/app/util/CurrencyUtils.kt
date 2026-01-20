@@ -45,4 +45,11 @@ object CurrencyUtils {
             maximumFractionDigits = 2
         }
     }
+    
+    /**
+     * Get the currency symbol
+     */
+    fun getCurrencySymbol(): String {
+        return CURRENCY_SYMBOL
+    }
 }
